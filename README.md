@@ -107,5 +107,15 @@ conda install conda=4.6.14
 ```
 - environments/environment.yml is for linux machines, try environments/environment_nobuild.yml for other OS's
 
-## Citation and Paper
-TODO
+## Paper and Citation
+[ViBE: A Tool for Measuring and Mitigating Bias in Image Datasets](https://arxiv.org/abs/2004.07999)
+
+```
+@online{vibetool,
+Author = {Angelina Wang and Arvind Narayanan and Olga Russakovsky},
+Title = {ViBE: A Tool for Measuring and Mitigating Bias in Image Datasets},
+Year = {2020},
+Eprint = {2004.07999},
+Eprinttype = {arXiv},
+}
+```
