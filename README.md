@@ -9,7 +9,7 @@ In the *sample_summary_pdfs* folder there are examples of the kinds of auto-gene
 * [Steps to perform analysis](https://github.com/princetonvisualai/vibe-tool#steps-to-perform-analysis)
 * [Measurements](https://github.com/princetonvisualai/vibe-tool#measurements)
 * [Potential Environment Issues](https://github.com/princetonvisualai/vibe-tool#potential-environment-issues)
-* [Citation and Paper](https://github.com/princetonvisualai/vibe-tool#citation-and-paper)
+* [Paper and Citation](https://github.com/princetonvisualai/vibe-tool#paper-and-citation)
 
 ## Setup:
 - Clone this repo
