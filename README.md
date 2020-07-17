@@ -1,15 +1,15 @@
-# ViBE: Visual Bias Extraction
+# REVISE: REvealing VIsual biaSEs
 A tool that automatically detects possible forms of bias in a visual dataset along the axes of object-based, gender-based, and geography-based patterns, and from which next steps for mitigation are suggested. 
 
 In the *sample_summary_pdfs* folder there are examples of the kinds of auto-generated summaries our tool outputs along each axis for a dataset. These samples are annotated in orange with some notes on how to interpret them.
 
 ## Table of Contents
 
-* [Setup](https://github.com/princetonvisualai/vibe-tool#setup)
-* [Steps to perform analysis](https://github.com/princetonvisualai/vibe-tool#steps-to-perform-analysis)
-* [Measurements](https://github.com/princetonvisualai/vibe-tool#measurements)
-* [Potential Environment Issues](https://github.com/princetonvisualai/vibe-tool#potential-environment-issues)
-* [Paper and Citation](https://github.com/princetonvisualai/vibe-tool#paper-and-citation)
+* [Setup](https://github.com/princetonvisualai/revise-tool#setup)
+* [Steps to perform analysis](https://github.com/princetonvisualai/revise-tool#steps-to-perform-analysis)
+* [Measurements](https://github.com/princetonvisualai/revise-tool#measurements)
+* [Potential Environment Issues](https://github.com/princetonvisualai/revise-tool#potential-environment-issues)
+* [Paper and Citation](https://github.com/princetonvisualai/revise-tool#paper-and-citation)
 
 ## Setup:
 - Clone this repo
@@ -111,15 +111,14 @@ conda install conda=4.6.14
 [ViBE: A Tool for Measuring and Mitigating Bias in Image Datasets](https://arxiv.org/abs/2004.07999)
 
 ```
-@online{vibetool,
+@article{revisetool,
 Author = {Angelina Wang and Arvind Narayanan and Olga Russakovsky},
-Title = {ViBE: A Tool for Measuring and Mitigating Bias in Image Datasets},
+Title = {REVISE: A Tool for Measuring and Mitigating Bias in Image Datasets},
 Year = {2020},
-Eprint = {2004.07999},
-Eprinttype = {arXiv},
+Journal = {European Conference on Computer Vision (ECCV)},
 }
 ```
 
 ## Funding
-This work is supported by the National Science Foundation under Grant No.
-1763642.
+This work is partially supported by the National Science Foundation under Grant No.
+1763642 and No. 1704444.
