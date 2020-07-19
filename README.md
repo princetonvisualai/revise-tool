@@ -13,7 +13,7 @@ In the *sample_summary_pdfs* folder there are examples of the kinds of auto-gene
 
 ## Setup:
 - Clone this repo
-- Set up the conda environment using the appropriate yml file (information in [Potential Environment Issues](https://github.com/princetonvisualai/vibe-tool#potential-environment-issues))
+- Set up the conda environment using the appropriate yml file (information in [Potential Environment Issues](https://github.com/princetonvisualai/revise-tool#potential-environment-issues))
 ```
 conda env create -f environments/[environment].yml
 ```
@@ -106,9 +106,10 @@ conda config --set allow_conda_downgrades true
 conda install conda=4.6.14
 ```
 - environments/environment.yml is for linux machines, try environments/environment_nobuild.yml for other OS's
+- Try deleting line 9 of environments/enivronment.yml of ```_libgcc_mutex=0.1=main``` if there are compatability errors
 
 ## Paper and Citation
-[ViBE: A Tool for Measuring and Mitigating Bias in Image Datasets](https://arxiv.org/abs/2004.07999)
+[REVISE: A Tool for Measuring and Mitigating Bias in Image Datasets](https://arxiv.org/abs/2004.07999)
 
 ```
 @article{revisetool,
