@@ -60,17 +60,17 @@ def main():
         dataset = None
     elif args.dataset == 'imagenet':
         dataset = ImagenetDataset(transform_train)
-
-    dataloader = data.DataLoader(dataset=dataset, 
-                  num_workers=0,
-                  batch_size=1,
-                  collate_fn=collate_fn,
-                  shuffle=True)
     
     for meas in args.measurements:
         print("Starting measurement {}".format(meas))
         if args.dataset == 'yfcc':
             dataset = YfccPlacesDataset(transform_train, meas)
+            dataloader = data.DataLoader(dataset=dataset, 
+              num_workers=0,
+              batch_size=1,
+              collate_fn=collate_fn,
+              shuffle=True)
+        else:
             dataloader = data.DataLoader(dataset=dataset, 
               num_workers=0,
               batch_size=1,
