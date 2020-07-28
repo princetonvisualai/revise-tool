@@ -60,12 +60,6 @@ def main():
         dataset = None
     elif args.dataset == 'imagenet':
         dataset = ImagenetDataset(transform_train)
-
-    dataloader = data.DataLoader(dataset=dataset, 
-                  num_workers=0,
-                  batch_size=1,
-                  collate_fn=collate_fn,
-                  shuffle=True)
     
     for meas in args.measurements:
         print("Starting measurement {}".format(meas))
