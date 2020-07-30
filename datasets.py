@@ -22,6 +22,10 @@ import torch
 def collate_fn(batch):
     return batch[0]
 
+class NoneDict(dict):
+    def __getitem__(self, key):
+        return dict.get(self, key)
+
 def setup_scenemapping(dataset, name):
     info = pickle.load(open('util_files/places_scene_info.pkl', 'rb'))
     idx_to_scene = info['idx_to_scene']
@@ -133,7 +137,7 @@ class TemplateDataset(data.Dataset):
         # Maps from filepath to scenes
         # Can be set up by running AlexNet Places365 model by running the following command:
         # self.scene_mapping = setup_scenemapping(self, '[name of dataset]')
-        self.scene_mapping = {}
+        self.scene_mapping = NoneDict()
 
         # Maps each label to number of supercategory group, which is listed in keys of GROUPINGS_TO_NAMES (optional)
         self.group_mapping = None
@@ -188,7 +192,7 @@ class OpenImagesDataset(data.Dataset):
         self.labels_to_names = {name[0]: name[1] for name in names}
         self.categories = list(self.labels_to_names.keys())
 
-        self.scene_mapping = {}
+        self.scene_mapping = NoneDict()
         if os.path.exists('dataloader_files/openimages_scene_mapping.pkl'):
             self.scene_mapping = pickle.load(open('dataloader_files/openimages_scene_mapping.pkl', 'rb'))
         else:
@@ -295,7 +299,7 @@ class CoCoDataset(data.Dataset):
 
         self.categories = list(self.labels_to_names.keys())
 
-        self.scene_mapping = {}
+        self.scene_mapping = NoneDict()
         if os.path.exists('dataloader_files/coco_scene_mapping.pkl'):
             self.scene_mapping = pickle.load(open('dataloader_files/coco_scene_mapping.pkl', 'rb'))
         else:
@@ -399,7 +403,7 @@ class SUNDataset(data.Dataset):
             self.categories = list(set([chunk.replace("occluded", "").replace("crop", "").strip() for chunk in categories]))
             pickle.dump(self.categories, open('dataloader_files/sun_categories.pkl', 'wb'))
         
-        self.scene_mapping = {}
+        self.scene_mapping = NoneDict()
         if os.path.exists('dataloader_files/sun_scene_mapping.pkl'):
             self.scene_mapping = pickle.load(open('dataloader_files/sun_scene_mapping.pkl', 'rb'))
         else:
@@ -443,7 +447,7 @@ class ImagenetDataset(data.Dataset):
 
         self.categories = list(self.labels_to_names.keys())
         
-        self.scene_mapping = {}
+        self.scene_mapping = NoneDict()
         if os.path.exists('dataloader_files/imagenet_scene_mapping.pkl'):
             self.scene_mapping = pickle.load(open('dataloader_files/imagenet_scene_mapping.pkl', 'rb'))
         else:
@@ -521,7 +525,7 @@ class YfccPlacesDataset(data.Dataset):
             content = f.readlines()
         self.categories = [x.strip() for x in content]
 
-        #self.scene_mapping = {}
+        #self.scene_mapping = NoneDict()
         #if os.path.exists('dataloader_files/yfcc_scene_mapping.pkl'):
         #    self.scene_mapping = pickle.load(open('dataloader_files/yfcc_scene_mapping.pkl', 'rb'))
         #else:
