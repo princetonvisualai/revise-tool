@@ -114,7 +114,7 @@ conda install conda=4.6.14
 ```
 @article{revisetool,
 Author = {Angelina Wang and Arvind Narayanan and Olga Russakovsky},
-Title = {REVISE: A Tool for Measuring and Mitigating Bias in Image Datasets},
+Title = {{REVISE}: A Tool for Measuring and Mitigating Bias in Image Datasets},
 Year = {2020},
 Journal = {European Conference on Computer Vision (ECCV)},
 }
