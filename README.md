@@ -109,12 +109,12 @@ conda install conda=4.6.14
 - Try deleting line 9 of environments/enivronment.yml of ```_libgcc_mutex=0.1=main``` if there are compatability errors
 
 ## Paper and Citation
-[REVISE: A Tool for Measuring and Mitigating Bias in Image Datasets](https://arxiv.org/abs/2004.07999)
+[REVISE: A Tool for Measuring and Mitigating Bias in Visual Datasets](https://arxiv.org/abs/2004.07999)
 
 ```
 @article{revisetool,
 Author = {Angelina Wang and Arvind Narayanan and Olga Russakovsky},
-Title = {{REVISE}: A Tool for Measuring and Mitigating Bias in Image Datasets},
+Title = {{REVISE}: A Tool for Measuring and Mitigating Bias in Visual Datasets},
 Year = {2020},
 Journal = {European Conference on Computer Vision (ECCV)},
 }
