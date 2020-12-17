@@ -25,7 +25,7 @@ bash download.sh
 - Note: we use [Amazon Rekognition](https://aws.amazon.com/rekognition/)'s proprietery facial detection tool in our analyses, which does incur a charge, and this will need to be set up for each user (instructions on Amazon's site). There are many free facial detection tools available as well, and you can change what is used in gender_based.py . One such free facial detection tool through cv2 is already implemented, and simply involves changing the FACE_DETECT variable in gender_based.py from 0 to 1 to use this instead.
 
 ## Steps to perform analysis:
-(0.5 optional) To experiment with the tool on the Coco dataset for Object-Based and Gender-Based metrics without having to run all the measurements on a dataset first, download the pickle files from [here](https://drive.google.com/drive/folders/1cGUr2ruV7IRl4h8EGtCjRCsg8wtPVu5P?usp=sharing), and place them in a folder in the tool directory called results/coco_example, then skip to Step 3.
+(0.5 optional) To experiment with the tool on the COCO dataset for Object-Based and Gender-Based metrics without having to run all the measurements on a dataset first, download the pickle files from [here](https://drive.google.com/drive/folders/1cGUr2ruV7IRl4h8EGtCjRCsg8wtPVu5P?usp=sharing), and place them in a folder in the tool directory called results/coco_example. Also download the [2014 COCO dataset](https://cocodataset.org/#download) as well as [gender annotations](https://github.com/uclanlp/reducingbias/tree/master/data/COCO), and place them in customizable filepaths specified in the code [here](https://github.com/princetonvisualai/revise-tool/blob/master/datasets.py#L287). Then, skip to Step 3.
 
 (1) Make a dataloader structured like the 'Template Dataset' in datasets.py (add to main_measure.py as well), and fill in with the dataset you would like to analyze
 
@@ -109,12 +109,12 @@ conda install conda=4.6.14
 - Try deleting line 9 of environments/enivronment.yml of ```_libgcc_mutex=0.1=main``` if there are compatability errors
 
 ## Paper and Citation
-[REVISE: A Tool for Measuring and Mitigating Bias in Image Datasets](https://arxiv.org/abs/2004.07999)
+[REVISE: A Tool for Measuring and Mitigating Bias in Visual Datasets](https://arxiv.org/abs/2004.07999)
 
 ```
 @article{revisetool,
 Author = {Angelina Wang and Arvind Narayanan and Olga Russakovsky},
-Title = {REVISE: A Tool for Measuring and Mitigating Bias in Image Datasets},
+Title = {{REVISE}: A Tool for Measuring and Mitigating Bias in Visual Datasets},
 Year = {2020},
 Journal = {European Conference on Computer Vision (ECCV)},
 }
