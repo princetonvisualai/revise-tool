@@ -298,6 +298,8 @@ class CoCoDataset(data.Dataset):
         self.scene_mapping = {}
         if os.path.exists('dataloader_files/coco_scene_mapping.pkl'):
             self.scene_mapping = pickle.load(open('dataloader_files/coco_scene_mapping.pkl', 'rb'))
+        elif os.path.exists('results/coco_example/coco_scene_mapping.pkl'):
+            self.scene_mapping = pickle.load(open('results/coco_example/coco_scene_mapping.pkl', 'rb'))
         else:
             setup_scenemapping(self, 'coco')
 
