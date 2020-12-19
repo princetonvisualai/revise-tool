@@ -279,6 +279,107 @@ class OpenImagesDataset(data.Dataset):
             info['num_gender'] = self.num_gender_images
             pickle.dump(info, open('dataloader_files/openimage_anns.pkl', 'wb'))
 
+# Dataset takes in pkl files as sub for training images 
+class CoCoDatasetNoImages(data.Dataset): 
+    def __init__(self, transform):
+        self.transform = transform
+        
+#         self.img_folder = 'Data/Coco/2014data/train2014'
+        self.coco = COCO('Data/Coco/2014data/annotations/instances_train2014.json')
+        gender_data = pickle.load(open('Data/Coco/2014data/bias_splits/train.data', 'rb'))
+        self.gender_info = {int(chunk['img'][15:27]): chunk['annotation'][0] for chunk in gender_data}
+
+        ids = list(self.coco.anns.keys())
+        self.image_ids = list(set([self.coco.anns[this_id]['image_id'] for this_id in ids]))
+
+        cats = self.coco.loadCats(self.coco.getCatIds())
+        self.labels_to_names = {}
+        for cat in cats:
+            self.labels_to_names[cat['id']] = cat['name']
+
+        self.categories = list(self.labels_to_names.keys())
+
+        self.scene_mapping = NoneDict()
+        if os.path.exists('dataloader_files/coco_scene_mapping.pkl'):
+            self.scene_mapping = pickle.load(open('dataloader_files/coco_scene_mapping.pkl', 'rb'))
+        elif os.path.exists('results/coco/coco_scene_mapping.pkl'):
+            self.scene_mapping = pickle.load(open('results/coco/coco_scene_mapping.pkl', 'rb'))
+        else:
+            setup_scenemapping(self, 'coco')
+
+        def mapping(ind):
+            if ind == 1:
+                return 0
+            elif ind < 10:
+                return 1
+            elif ind < 16:
+                return 2
+            elif ind < 26:
+                return 3
+            elif ind < 34:
+                return 4
+            elif ind < 44:
+                return 5
+            elif ind < 52:
+                return 6
+            elif ind < 62:
+                return 7
+            elif ind < 72:
+                return 8
+            elif ind < 78:
+                return 9
+            elif ind < 84:
+                return 10
+            else:
+                return 11
+        self.group_mapping = mapping # takes in label name, so from self.categories
+
+        self.people_labels = [1] # instances of self.categories
+        self.num_gender_images = [6642, 16324]
+        
+    def __getitem__(self, index):
+        image_id = self.image_ids[index]
+        path = self.coco.loadImgs(image_id)[0]["file_name"]
+
+        file_path = os.path.join(self.img_folder, path)
+        return self.from_path(file_path)
+
+    def __len__(self):
+        return len(self.image_ids)
+
+    def from_path(self, file_path):
+        image_id = int(os.path.basename(file_path)[-16:-4])
+
+        image = Image.open(file_path).convert("RGB")
+        image = self.transform(image)
+        image_size = list(image.size())[1:]
+
+        annIds = self.coco.getAnnIds(imgIds=image_id);
+        coco_anns = self.coco.loadAnns(annIds) # coco is [x, y, width, height]
+        formatted_anns = []
+        biggest_person = 0
+        biggest_bbox = 0
+        for ann in coco_anns:
+            bbox = ann['bbox']
+            bbox = [bbox[0] / image_size[1], (bbox[0]+bbox[2]) / image_size[1], bbox[1] / image_size[0], (bbox[1]+bbox[3]) / image_size[0]]
+            new_ann = {'bbox': bbox, 'label': ann['category_id']}
+            formatted_anns.append(new_ann)
+
+            if ann['category_id'] == 1:
+                area = (bbox[1]-bbox[0])*(bbox[3]-bbox[2])
+                if area > biggest_person:
+                    biggest_person = area
+                    biggest_bbox = bbox
+
+        scene = self.scene_mapping.get(file_path, None)
+        if biggest_bbox != 0 and image_id in self.gender_info.keys():
+            anns = [formatted_anns, [self.gender_info[image_id] + 1, biggest_bbox], [0], file_path, scene]
+        else:
+            anns = [formatted_anns, [0], [0], file_path, scene]
+
+        return image, anns 
+        
+
 class CoCoDataset(data.Dataset):
 
     def __init__(self, transform):
