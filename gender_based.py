@@ -192,9 +192,9 @@ def cluster_for_instance(dataloader, args):
     model.load_state_dict(state_dict)
     model.eval()
 
-    scene_classifier = model.classifier
+    scene_classifier = model.fc
     new_classifier = nn.Sequential()
-    model.classifier = new_classifier
+    model.fc = new_classifier
 
     categories = dataloader.dataset.categories
     scene_features = [[[], []] for i in range(len(categories))]
