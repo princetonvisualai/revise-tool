@@ -346,6 +346,51 @@ class CoCoDataset(data.Dataset):
 
     def __len__(self):
         return len(self.image_ids)
+    
+    # helper function if using step 0.5 to initialize
+    # folder_path so from_path_prerun() can access correct
+    # data location
+    def init_folder_path(self, folder_path):
+        self.folder_path = folder_path
+    
+    # only if using step 0.5, copy of from_path() except
+    # with filename modification to access data path 
+    def from_path_prerun(self, file_path):
+        image_id = int(os.path.basename(file_path)[-16:-4])
+        # need for scene map since the dict uses 
+        # original file name as key
+        original_file_path = file_path
+        # change file_path to one with right folder_path
+        _, tail = os.path.split(file_path)
+        file_path = self.folder_path + tail
+
+        image = Image.open(file_path).convert("RGB")
+        image = self.transform(image)
+        image_size = list(image.size())[1:]
+
+        annIds = self.coco.getAnnIds(imgIds=image_id);
+        coco_anns = self.coco.loadAnns(annIds) # coco is [x, y, width, height]
+        formatted_anns = []
+        biggest_person = 0
+        biggest_bbox = 0
+        for ann in coco_anns:
+            bbox = ann['bbox']
+            bbox = [bbox[0] / image_size[1], (bbox[0]+bbox[2]) / image_size[1], bbox[1] / image_size[0], (bbox[1]+bbox[3]) / image_size[0]]
+            new_ann = {'bbox': bbox, 'label': ann['category_id']}
+            formatted_anns.append(new_ann)
+
+            if ann['category_id'] == 1:
+                area = (bbox[1]-bbox[0])*(bbox[3]-bbox[2])
+                if area > biggest_person:
+                    biggest_person = area
+                    biggest_bbox = bbox
+
+        scene = self.scene_mapping.get(original_file_path, None)
+        if biggest_bbox != 0 and image_id in self.gender_info.keys():
+            anns = [formatted_anns, [self.gender_info[image_id] + 1, biggest_bbox], [0], file_path, scene]
+        else:
+            anns = [formatted_anns, [0], [0], file_path, scene]
+        return image, anns        
 
     def from_path(self, file_path):
         image_id = int(os.path.basename(file_path)[-16:-4])
