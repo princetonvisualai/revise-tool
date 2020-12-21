@@ -347,13 +347,13 @@ class CoCoDataset(data.Dataset):
     def __len__(self):
         return len(self.image_ids)
     
-    # helper function if using step 0.5 to initialize
+    # helper function if using step 0.5 in README to initialize
     # folder_path so from_path_prerun() can access correct
     # data location
     def init_folder_path(self, folder_path):
         self.folder_path = folder_path
     
-    # only if using step 0.5, copy of from_path() except
+    # only if using step 0.5 in README, copy of from_path() except
     # with filename modification to access data path 
     def from_path_prerun(self, file_path):
         image_id = int(os.path.basename(file_path)[-16:-4])
