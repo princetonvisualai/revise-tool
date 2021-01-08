@@ -163,7 +163,7 @@ class TemplateDataset(data.Dataset):
         image = self.transform(image)
 
         person_bbox = None # optional
-        gender = None # optional, we have used 0 for female and 1 for male when these labels exist
+        gender = None # optional, we have used 0 for male and 1 for female when these labels exist
         gender_info = [gender, person_bbox] # optional
 
         country = None # optional
