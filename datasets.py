@@ -284,7 +284,7 @@ class CoCoDataset(data.Dataset):
     def __init__(self, transform):
         self.transform = transform
         
-#         self.img_folder = 'Data/Coco/2014data/train2014'
+        self.img_folder = 'Data/Coco/2014data/train2014'
         self.coco = COCO('Data/Coco/2014data/annotations/instances_train2014.json')
         gender_data = pickle.load(open('Data/Coco/2014data/bias_splits/train.data', 'rb'))
         self.gender_info = {int(chunk['img'][15:27]): chunk['annotation'][0] for chunk in gender_data}
