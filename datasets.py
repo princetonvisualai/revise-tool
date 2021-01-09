@@ -423,6 +423,51 @@ class CoCoDataset(data.Dataset):
             anns = [formatted_anns, [0], [0], file_path, scene]
 
         return image, anns
+    
+class CoCoDatasetNoImages(data.Dataset):
+
+    def __init__(self, transform):
+        self.coco = COCO('Data/Coco/2014data/annotations/instances_train2014.json')
+        
+        ids = list(self.coco.anns.keys())
+        self.image_ids = list(set([self.coco.anns[this_id]['image_id'] for this_id in ids]))
+
+        cats = self.coco.loadCats(self.coco.getCatIds())
+        self.labels_to_names = {}
+        for cat in cats:
+            self.labels_to_names[cat['id']] = cat['name']
+
+        self.categories = list(self.labels_to_names.keys())
+
+        def mapping(ind):
+            if ind == 1:
+                return 0
+            elif ind < 10:
+                return 1
+            elif ind < 16:
+                return 2
+            elif ind < 26:
+                return 3
+            elif ind < 34:
+                return 4
+            elif ind < 44:
+                return 5
+            elif ind < 52:
+                return 6
+            elif ind < 62:
+                return 7
+            elif ind < 72:
+                return 8
+            elif ind < 78:
+                return 9
+            elif ind < 84:
+                return 10
+            else:
+                return 11
+        self.group_mapping = mapping # takes in label name, so from self.categories
+
+        self.people_labels = [1] # instances of self.categories
+        self.num_gender_images = [6642, 16324]
 
 class SUNDataset(data.Dataset):
 
