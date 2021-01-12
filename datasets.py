@@ -146,12 +146,10 @@ class TemplateDataset(data.Dataset):
         # Maps each label to number of supercategory group, which is listed in keys of GROUPINGS_TO_NAMES (optional)
         self.group_mapping = None
 
-        # Labels that correspond to people (optional)
-        #Note: This refers to labels that describe people in images
+        # Labels, that are entries from self.categories, that correspond to people (optional)
         self.people_labels = []
 
         # Number of images from dataset that are female at index 0 and male at index 1 (optional, doesn't need to exist)
-        #Note: Needs to exist for gender analysis, is count for each gender image
         self.num_gender_images = [0, 0]
         
     def __getitem__(self, index):
@@ -175,7 +173,7 @@ class TemplateDataset(data.Dataset):
 
         country = None # optional
 
-        #Note: This is a map of present labels: image_anns = [{‘label’: ‘mustache’}, {‘label’: ‘young’}] where the image has a 1 for mustache and young (it's present)
+        #Note: This is a map of present labels: image_anns = [{‘label’: ‘tennis_ball’}, {‘label’: ‘dog’}] where the image has a tennis ball and a dog
         image_anns = None
 
         scene_group = self.scene_mapping[file_path] # optional
