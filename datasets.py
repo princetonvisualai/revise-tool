@@ -126,6 +126,7 @@ class TemplateDataset(data.Dataset):
         self.img_folder = ''
 
         # List of all of the image ids
+        # Note: This is some representation of the image, can be integer or name of image
         self.image_ids = [] 
 
         # Maps label to the human-readable name
@@ -139,13 +140,18 @@ class TemplateDataset(data.Dataset):
         # self.scene_mapping = setup_scenemapping(self, '[name of dataset]')
         self.scene_mapping = NoneDict()
 
+        #Note: Any of the 'optional' attributes may be necessary depending on analysis and metrics, check before not filling in
+
+
         # Maps each label to number of supercategory group, which is listed in keys of GROUPINGS_TO_NAMES (optional)
         self.group_mapping = None
 
         # Labels that correspond to people (optional)
+        #Note: This refers to labels that describe people in images
         self.people_labels = []
 
         # Number of images from dataset that are female at index 0 and male at index 1 (optional, doesn't need to exist)
+        #Note: Needs to exist for gender analysis, is count for each gender image
         self.num_gender_images = [0, 0]
         
     def __getitem__(self, index):
@@ -162,14 +168,19 @@ class TemplateDataset(data.Dataset):
         image = Image.open(file_path).convert("RGB")
         image = self.transform(image)
 
+        #Note: bbox digits should be: x, y, width, height
         person_bbox = None # optional
         gender = None # optional, we have used 0 for male and 1 for female when these labels exist (yes, this order is reversed from self.num_gender_images above)
         gender_info = [gender, person_bbox] # optional
 
         country = None # optional
 
+        #Note: This is a map of present labels: image_anns = [{‘label’: ‘mustache’}, {‘label’: ‘young’}] where the image has a 1 for mustache and young (it's present)
         image_anns = None
+
         scene_group = self.scene_mapping[file_path] # optional
+
+        #Note: Gender info should not be in an array since gender_info is already array
         anns = [image_anns, [gender_info], [country], file_path, scene_group]
 
         return image, anns
@@ -692,148 +703,5 @@ class YfccPlacesDataset(data.Dataset):
             anns = [self.annotations[image_id], [0], [country], file_path, None]
         else:
             anns = [None, [0], [country], file_path, None]
-
-        return image, anns
-
-#I made a dataset for CelebA with notes about details I wanted clarification on or about potential issues
-class CelebADataset(data.Dataset):
-    
-    def __init__(self, transform):
-        self.transform = transform
-        
-        # Where the images are located (doesn't need to exist, but can be helpful for other functions)
-        self.img_folder = 'img_align_celeba'
-
-        self.annotations_folder = 'Anno'
-
-        # List of all of the image ids
-        # Note: This is some representation of the image, can be integer or name of image
-        self.image_ids = []
-        
-        with open('Anno/identity_CelebA.txt') as f:
-            
-            for line in f:
-                stripped_line = line.strip()
-                stripped_line = stripped_line.split()
-                self.image_ids.append(stripped_line[0])
- 
-        
-        print("done with ids")
-
-        # List of all the labels
-        count = 0
-        with open('Anno/list_attr_celeba.txt') as f:
-            
-            for line in f:
-                stripped_line = line.strip()
-                stripped_line = stripped_line.split()
-                self.categories =stripped_line
-                count += 1
-                if count == 2:
-                    break
-        
-        self.labels_to_names = {}
-        for category in self.categories:
-            self.labels_to_names[category] = category
-        print("done with categories")
-        
-        #Note: Any of the 'optional' attributes may be necessary depending on analysis and metrics, check before not filling in
-        
-        # Maps from filepath to scenes
-        # Can be set up by running AlexNet Places365 model by running the following command:
-        self.scene_mapping = NoneDict()
-        setup_scenemapping(self, 'img_align_celeba')
-        
-        print("done with scene mapping")
-        # Maps each label to number of supercategory group, which is listed in keys of GROUPINGS_TO_NAMES (optional)
-        self.group_mapping = None
-
-        # Labels that correspond to people (optional)
-        #self.people_labels = self.categories
-        #Note: This refers to labels that describe people in images
-        self.people_labels = []
-        
-
-        # Number of images from dataset that are female and male (optional, doesn't need to exist)
-        #Note: Needs to exist for gender analysis, is count for each gender image
-        self.num_gender_images = [0, 0]
-        count = 0
-        with open('Anno/list_attr_celeba.txt') as f:
-            
-            for line in f:
-                if count >= 2:
-                    stripped_line = line.strip()
-                    stripped_line = stripped_line.split()
-                    image_values = stripped_line[1:]
-                    gender = int(image_values[20])
-                    if gender > 0:
-                        self.num_gender_images[1] += 1
-                    else:
-                        self.num_gender_images[0] += 1
-                count += 1
-                
-        print("done with gender counting")
-        print(self.num_gender_images)
-        
-    def __getitem__(self, index):
-        image_id = self.image_ids[index]
-        file_path = self.img_folder + '/' + image_id
-        return self.from_path(file_path)
-
-    def __len__(self):
-        return len(self.image_ids)
-
-    def from_path(self, file_path):
-        image_id = os.path.basename(file_path)
-
-        image = Image.open(file_path).convert("RGB")
-        image = self.transform(image)
-        image_size = list(image.size())[1:]
-
-
-
-        country = None # optional
-
-        image_anns = []
-        #Note: This is a map of present labels: image_anns = [{‘label’: ‘mustache’}, {‘label’: ‘young’}] where the image has a 1 for mustache and young (it's present)
-
-        with open('Anno/list_attr_celeba.txt') as f:
-            
-            for line in f:
-                stripped_line = line.strip()
-                if image_id in stripped_line:
-                    stripped_line = stripped_line.split()
-                    image_values = stripped_line[1:]
-                    gender = int(image_values[20])
-                    for category in range(len(self.categories)):
-                        if int(image_values[category]) == 1:
-                            image_anns.append({'label':self.categories[category]})
-                    
-                    break
-        with open('Anno/list_bbox_celeba.txt') as bbox_f:
-            for line in bbox_f:
-                stripped_line = line.strip()
-                if image_id in stripped_line:
-                    stripped_line = stripped_line.split()
-                    bbox = stripped_line[1:]
-                    
-                    #Note: bbox digits should be : x,y,width,height
-                    bbox_digits = [int(bbox[0]) / image_size[1], (int(bbox[0])+int(bbox[2])) / image_size[1], int(bbox[1]) / image_size[0], (int(bbox[1])+int(bbox[3])) / image_size[0]]
-                    break
-        
-
-        #Note: I think the default comment may not be correct, and females are 1 and males are 0
-        if gender < 0:
-            gender = 1
-        else:
-            gender = 0
-        
-        
-        gender_info = [gender, bbox_digits]
-       
-        scene_group = self.scene_mapping[file_path] # optional
-        
-        #Note: Gender info should not be in array since gender_info is already array
-        anns = [image_anns, gender_info, [country], file_path, scene_group]
 
         return image, anns
