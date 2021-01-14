@@ -694,3 +694,146 @@ class YfccPlacesDataset(data.Dataset):
             anns = [None, [0], [country], file_path, None]
 
         return image, anns
+
+#Works on celebA image dataset of celebrities
+class CelebADataset(data.Dataset):
+    
+    def __init__(self, transform):
+        self.transform = transform
+        
+        # Where the images are located (doesn't need to exist, but can be helpful for other functions)
+        self.img_folder = 'img_align_celeba'
+
+        self.annotations_folder = 'Anno'
+
+        # List of all of the image ids
+        self.image_ids = []
+        #Adds the title of the image as its ID (e.g. 000006.jpg = 000006)
+        with open('Anno/identity_CelebA.txt') as f:
+            
+            for line in f:
+                stripped_line = line.strip()
+                stripped_line = stripped_line.split()
+                self.image_ids.append(stripped_line[0])
+        
+        print("done with ids")
+
+        # List of all the labels (e.g. Young, mustache)
+        count = 0
+        with open('Anno/list_attr_celeba.txt') as f:
+            
+            for line in f:
+                stripped_line = line.strip()
+                stripped_line = stripped_line.split()
+                self.categories =stripped_line
+                count += 1
+                if count == 2:
+                    break
+        
+        #category name is just equal to that category name ("young" = "young")
+        self.labels_to_names = {}
+        for category in self.categories:
+            self.labels_to_names[category] = category
+        print("done with categories")
+        
+
+        # Maps from filepath to scenes
+        # Can be set up by running AlexNet Places365 model by running the following command:
+        self.scene_mapping = NoneDict()
+        if os.path.exists('dataloader_files/img_align_celeba_scene_mapping.pkl'):
+            self.scene_mapping = pickle.load(open('dataloader_files/img_align_celeba_scene_mapping.pkl', 'rb'))
+        else:
+            setup_scenemapping(self, 'img_align_celeba')
+        
+        print("done with scene mapping")
+        # Maps each label to number of supercategory group, which is listed in keys of GROUPINGS_TO_NAMES (optional)
+        self.group_mapping = None
+
+        # Labels that correspond to people (optional)
+        #Note: This refers to labels that describe people in images
+        self.people_labels = []
+        
+
+        # Number of images from dataset that are female and male (optional, doesn't need to exist)
+        #Needs to exist for gender analysis
+        self.num_gender_images = [0, 0]
+        with open('Anno/list_attr_celeba.txt') as f:
+            
+            for line in f:
+                if count >= 2:
+                    stripped_line = line.strip()
+                    stripped_line = stripped_line.split()
+                    image_values = stripped_line[1:]
+                    gender = int(image_values[20])
+                    if gender > 0:
+                        self.num_gender_images[1] += 1
+                    else:
+                        self.num_gender_images[0] += 1
+                count += 1
+                
+        print("done with gender counting")
+        print(self.num_gender_images)
+        
+    def __getitem__(self, index):
+        image_id = self.image_ids[index]
+        file_path = self.img_folder + '/' + image_id
+        return self.from_path(file_path)
+
+    def __len__(self):
+        return len(self.image_ids)
+
+    def from_path(self, file_path):
+        image_id = os.path.basename(file_path)
+
+        image = Image.open(file_path).convert("RGB")
+        image = self.transform(image)
+        image_size = list(image.size())[1:]
+
+
+
+        country = None # optional
+
+        image_anns = []
+
+        #For each image, get gender and category information
+        with open('Anno/list_attr_celeba.txt') as f:
+            
+            for line in f:
+                stripped_line = line.strip()
+                if image_id in stripped_line:
+                    stripped_line = stripped_line.split()
+                    image_values = stripped_line[1:]
+                    #From values, gender value is at index 20
+                    gender = int(image_values[20])
+                    #For all categories, add an annotation for that category if value is 1 for particular image
+                    for category in range(len(self.categories)):
+                        if int(image_values[category]) == 1:
+                            image_anns.append({'label':self.categories[category]})
+                    break
+        #For each image, get bbox information and add to bbox_digits
+        with open('Anno/list_bbox_celeba.txt') as bbox_f:
+            for line in bbox_f:
+                stripped_line = line.strip()
+                if image_id in stripped_line:
+                    stripped_line = stripped_line.split()
+                    bbox = stripped_line[1:]
+                    
+                    #x,y,width,height
+                    #Normalize digits in same way as done in Coco
+                    bbox_digits = [int(bbox[0]) / image_size[1], (int(bbox[0])+int(bbox[2])) / image_size[1], int(bbox[1]) / image_size[0], (int(bbox[1])+int(bbox[3])) / image_size[0]]
+                    break
+        
+        #Females are marked as 1, and males as 0
+        if gender < 0:
+            gender = 1
+        else:
+            gender = 0
+        
+        
+        gender_info = [gender, bbox_digits]
+       
+        scene_group = self.scene_mapping[file_path] # optional
+        #Note: Gender info should not be in array since gender_info is already array
+        anns = [image_anns, gender_info, [country], file_path, scene_group]
+
+        return image, anns
