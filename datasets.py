@@ -126,6 +126,7 @@ class TemplateDataset(data.Dataset):
         self.img_folder = ''
 
         # List of all of the image ids
+        # Note: This is some representation of the image, can be integer or name of image
         self.image_ids = [] 
 
         # Maps label to the human-readable name
@@ -139,10 +140,13 @@ class TemplateDataset(data.Dataset):
         # self.scene_mapping = setup_scenemapping(self, '[name of dataset]')
         self.scene_mapping = NoneDict()
 
+        #Note: Any of the 'optional' attributes may be necessary depending on analysis and metrics, check before not filling in
+
+
         # Maps each label to number of supercategory group, which is listed in keys of GROUPINGS_TO_NAMES (optional)
         self.group_mapping = None
 
-        # Labels that correspond to people (optional)
+        # Labels, that are entries from self.categories, that correspond to people (optional)
         self.people_labels = []
 
         # Number of images from dataset that are female at index 0 and male at index 1 (optional, doesn't need to exist)
@@ -162,14 +166,19 @@ class TemplateDataset(data.Dataset):
         image = Image.open(file_path).convert("RGB")
         image = self.transform(image)
 
+        #Note: bbox digits should be: x, y, width, height
         person_bbox = None # optional
         gender = None # optional, we have used 0 for male and 1 for female when these labels exist (yes, this order is reversed from self.num_gender_images above)
         gender_info = [gender, person_bbox] # optional
 
         country = None # optional
 
+        #Note: This is a map of present labels: image_anns = [{‘label’: ‘tennis_ball’}, {‘label’: ‘dog’}] where the image has a tennis ball and a dog
         image_anns = None
+
         scene_group = self.scene_mapping[file_path] # optional
+
+        #Note: Gender info should not be in an array since gender_info is already array
         anns = [image_anns, [gender_info], [country], file_path, scene_group]
 
         return image, anns
@@ -692,6 +701,7 @@ class YfccPlacesDataset(data.Dataset):
             anns = [self.annotations[image_id], [0], [country], file_path, None]
         else:
             anns = [None, [0], [country], file_path, None]
+
 
         return image, anns
 
