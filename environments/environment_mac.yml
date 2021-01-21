@@ -168,5 +168,5 @@ dependencies:
     - fpdf==1.7.2
     - geonamescache==1.1.0
     - pybind11==2.5.0
-    - spacy=2.3.5
+    - spacy==2.3.5
 
