@@ -18,6 +18,11 @@ import torchvision.models as models
 import torch.nn as nn
 from torch.nn import functional as F
 import torch
+import spacy
+from scipy.special import softmax 
+import numpy as np
+from collections import OrderedDict 
+nlp = spacy.load("en_core_web_lg")
 
 def collate_fn(batch):
     return batch[0]
@@ -117,6 +122,89 @@ GROUPINGS_TO_NAMES = {
     11: 'indoor'
 }
 
+def group_mapping_creator(labels_to_names, supercategories_to_names, 
+                          override_map = None):
+    '''
+    inputs:
+    labels_to_names: dict mapping "label" to "human readable string"
+    supercategories_to_names: dict mapping "supercat" to "human readable string"
+    override_map: dict mapping: "human-readable label" to "human-readable supercat"
+                        for manual overriding of mapping of certain labels
+           
+    output:
+    prints out human-readable label to human readable supercat mapping
+    
+    returns:
+    function that takes an input label, and returns a supercat
+    '''
+    ######################################################################  
+    assert (labels_to_names is not None and supercategories_to_names is not None)
+    # function that calculates the "closest" supercategory to input word
+    # and returns said supercategory and the associated softmax confidence score
+    def dist_calculator(word):
+        assert(word is not None)
+        # create list of supercats for easy indexing & ordering
+        supercat_list = list(supercategories_to_names.keys())
+        # score array for each supercat, for softmax calculation
+        score_arr = []
+
+        for supercat in (supercat_list):
+            word1 = nlp(supercategories_to_names[supercat])
+            word2 = nlp(word)
+            cur_score = word1.similarity(word2)
+            if cur_score is None:
+                score_arr.append(-1)
+                continue
+            else:
+                score_arr.append(cur_score)
+        score_arr = softmax(score_arr)
+        
+        return supercat_list[np.argmax(score_arr)], np.max(score_arr)
+    ######################################################################    
+    # this represents the result map from label to supercat
+    result_label_to_group_map = OrderedDict()
+    # (hr_label) is the human-readable value corresponding to the key (label)
+    for label, hr_label in labels_to_names.items():
+        if override_map and hr_label in override_map:
+            # skip if user is overriding with override_map
+            continue
+        # retrieve tuple result from dist_calculator
+        supercat_match = dist_calculator(hr_label)
+        result_label_to_group_map[label] = supercat_match
+        
+    # sort from least to most confident based on softmax scores
+    result_label_to_group_map = dict(sorted(result_label_to_group_map.items(), key=lambda item: item[1][1]))
+    
+    # remove the softmax scores from the dictionary
+    for k, v in result_label_to_group_map.items():
+        result_label_to_group_map[k] = v[0]
+    
+    # add the harded-coded override_map values if provided:
+    if override_map:
+        # initialize non-human-readable form of override_map
+        override_nonhuman_readable = {}
+        # invert the labels_to_names 
+        names_to_labels = dict((v, k) for k, v in labels_to_names.items())
+        # invert the supercategories_to_names
+        names_to_supercategories = dict((v, k) for k, v in supercategories_to_names.items())
+        # convert human-readable labels and supercats 
+        for k,v in override_map.items():
+            label = names_to_labels.get(k)
+            supercat = names_to_supercategories.get(v)
+            assert label in labels_to_names and supercat in supercategories_to_names, "override string not valid"
+            override_nonhuman_readable[label] = supercat
+        # add overriden dict to result dict 
+        result_label_to_group_map.update(override_nonhuman_readable)
+
+    # print mapping in human-readable form so user can adjust if necessary
+    print("Ranked from least to most confident, here are the \nlabel->supercategory mappings:\n(change as necessary using override_map)")
+    print("-------------------------------")
+    for k, v in result_label_to_group_map.items():
+        print("{0}: {1}".format(labels_to_names.get(k), supercategories_to_names.get(v)))
+
+    # return function of mapping from label-> supercat
+    return lambda label: result_label_to_group_map.get(label)
+
 class TemplateDataset(data.Dataset):
     
     def __init__(self, transform):
@@ -144,7 +232,8 @@ class TemplateDataset(data.Dataset):
 
 
         # Maps each label to number of supercategory group, which is listed in keys of GROUPINGS_TO_NAMES (optional)
-        self.group_mapping = None
+        # self.group_mapping = None
+        self.group_mapping = group_mapping_creator(self.labels_to_names, GROUPINGS_TO_NAMES)
 
         # Labels, that are entries from self.categories, that correspond to people (optional)
         self.people_labels = []
