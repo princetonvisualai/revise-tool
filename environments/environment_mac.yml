@@ -191,4 +191,3 @@ dependencies:
     - thinc==7.4.5
     - tqdm==4.56.0
     - wasabi==0.8.0
-prefix: /Users/alex/opt/miniconda3/envs/toolenv
