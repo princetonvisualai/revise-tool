@@ -705,18 +705,17 @@ class YfccPlacesDataset(data.Dataset):
 
         return image, anns
 
-#Works on celebA image dataset of celebrities
+#Works on CelebA face dataset (http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html)
 class CelebADataset(data.Dataset):
     
     def __init__(self, transform):
         self.transform = transform
         
-        # Where the images are located (doesn't need to exist, but can be helpful for other functions)
-        self.img_folder = 'img_align_celeba'
+        self.img_folder = 'celeba'
 
         self.annotations_folder = 'Anno'
 
-        # List of all of the image ids
+        
         self.image_ids = []
         #Adds the title of the image as its ID (e.g. 000006.jpg = 000006)
         with open('Anno/identity_CelebA.txt') as f:
@@ -726,12 +725,11 @@ class CelebADataset(data.Dataset):
                 stripped_line = stripped_line.split()
                 self.image_ids.append(stripped_line[0])
         
-        print("done with ids")
+        print("done with ids (1/4 dataset steps)")
 
         # List of all the labels (e.g. Young, mustache)
         count = 0
         with open('Anno/list_attr_celeba.txt') as f:
-            
             for line in f:
                 stripped_line = line.strip()
                 stripped_line = stripped_line.split()
@@ -744,31 +742,26 @@ class CelebADataset(data.Dataset):
         self.labels_to_names = {}
         for category in self.categories:
             self.labels_to_names[category] = category
-        print("done with categories")
+        print("done with categories (2/4 dataset steps)")
         
 
-        # Maps from filepath to scenes
-        # Can be set up by running AlexNet Places365 model by running the following command:
         self.scene_mapping = NoneDict()
-        if os.path.exists('dataloader_files/img_align_celeba_scene_mapping.pkl'):
-            self.scene_mapping = pickle.load(open('dataloader_files/img_align_celeba_scene_mapping.pkl', 'rb'))
+        if os.path.exists('dataloader_files/celeba_scene_mapping.pkl'):
+            self.scene_mapping = pickle.load(open('dataloader_files/celeba_scene_mapping.pkl', 'rb'))
         else:
-            setup_scenemapping(self, 'img_align_celeba')
+            setup_scenemapping(self, 'celeba')
         
-        print("done with scene mapping")
-        # Maps each label to number of supercategory group, which is listed in keys of GROUPINGS_TO_NAMES (optional)
+        print("done with scene mapping (3/4 dataset steps)")
         self.group_mapping = None
 
-        # Labels that correspond to people (optional)
         #Note: This refers to labels that describe people in images
         self.people_labels = []
         
 
-        # Number of images from dataset that are female and male (optional, doesn't need to exist)
         #Needs to exist for gender analysis
         self.num_gender_images = [0, 0]
+        count = 0
         with open('Anno/list_attr_celeba.txt') as f:
-            
             for line in f:
                 if count >= 2:
                     stripped_line = line.strip()
@@ -781,7 +774,7 @@ class CelebADataset(data.Dataset):
                         self.num_gender_images[0] += 1
                 count += 1
                 
-        print("done with gender counting")
+        print("done with gender counting (4/4 dataset steps)")
         print(self.num_gender_images)
         
     def __getitem__(self, index):
@@ -799,9 +792,7 @@ class CelebADataset(data.Dataset):
         image = self.transform(image)
         image_size = list(image.size())[1:]
 
-
-
-        country = None # optional
+        country = None
 
         image_anns = []
 
@@ -842,7 +833,7 @@ class CelebADataset(data.Dataset):
         
         gender_info = [gender, bbox_digits]
        
-        scene_group = self.scene_mapping[file_path] # optional
+        scene_group = self.scene_mapping[file_path]
         #Note: Gender info should not be in array since gender_info is already array
         anns = [image_anns, gender_info, [country], file_path, scene_group]
 

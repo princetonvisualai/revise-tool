@@ -60,7 +60,7 @@ def main():
         dataset = None
     elif args.dataset == 'imagenet':
         dataset = ImagenetDataset(transform_train)
-    elif args.dataset == 'img_align_celeba':
+    elif args.dataset == 'celeba':
         dataset = CelebADataset(transform_train)
     
     for meas in args.measurements:
