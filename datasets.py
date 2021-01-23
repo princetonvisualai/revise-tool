@@ -122,7 +122,7 @@ GROUPINGS_TO_NAMES = {
     11: 'indoor'
 }
 
-def group_mapping_creator(labels_to_names, supercategories_to_names, 
+def group_mapping_creator(labels_to_names, supercategories_to_names=GROUPINGS_TO_NAMES, 
                           override_map = None):
     '''
     inputs:
@@ -137,28 +137,23 @@ def group_mapping_creator(labels_to_names, supercategories_to_names,
     returns:
     function that takes an input label, and returns a supercat
     '''
-    ######################################################################  
     assert (labels_to_names is not None and supercategories_to_names is not None)
+    # precompute the spacy tokens for each of the supercategories
+    supercat_list = list(supercategories_to_names.keys())
+    nlp_supercat = []
+    for supercat in supercat_list:
+        nlp_supercat.append(nlp(supercategories_to_names.get(supercat)))
+    ######################################################################  
     # function that calculates the "closest" supercategory to input word
     # and returns said supercategory and the associated softmax confidence score
     def dist_calculator(word):
         assert(word is not None)
-        # create list of supercats for easy indexing & ordering
-        supercat_list = list(supercategories_to_names.keys())
-        # score array for each supercat, for softmax calculation
+        # score array holding distance btwn word and each supercat, for softmax calculation
         score_arr = []
-
-        for supercat in (supercat_list):
-            word1 = nlp(supercategories_to_names[supercat])
-            word2 = nlp(word)
-            cur_score = word1.similarity(word2)
-            if cur_score is None:
-                score_arr.append(-1)
-                continue
-            else:
-                score_arr.append(cur_score)
+        for supercat_token in nlp_supercat:
+            cur_score = supercat_token.similarity(nlp(word))
+            score_arr.append(cur_score)
         score_arr = softmax(score_arr)
-        
         return supercat_list[np.argmax(score_arr)], np.max(score_arr)
     ######################################################################    
     # this represents the result map from label to supercat
@@ -173,7 +168,7 @@ def group_mapping_creator(labels_to_names, supercategories_to_names,
         result_label_to_group_map[label] = supercat_match
         
     # sort from least to most confident based on softmax scores
-    result_label_to_group_map = dict(sorted(result_label_to_group_map.items(), key=lambda item: item[1][1]))
+    result_label_to_group_map = OrderedDict(sorted(result_label_to_group_map.items(), key=lambda item: item[1][1]))
     
     # remove the softmax scores from the dictionary
     for k, v in result_label_to_group_map.items():
@@ -197,10 +192,10 @@ def group_mapping_creator(labels_to_names, supercategories_to_names,
         result_label_to_group_map.update(override_nonhuman_readable)
 
     # print mapping in human-readable form so user can adjust if necessary
-    print("Ranked from least to most confident, here are the \nlabel->supercategory mappings:\n(change as necessary using override_map)")
+    print("Here are the 20 LEAST confident labels to supercategory mappings, ranked in increasing confidence.\nChange as necessary using override_map)")
     print("-------------------------------")
-    for k, v in result_label_to_group_map.items():
-        print("{0}: {1}".format(labels_to_names.get(k), supercategories_to_names.get(v)))
+    for entry in list(result_label_to_group_map.items())[:20]:
+        print("{0}: {1}".format(labels_to_names.get(entry[0]), supercategories_to_names.get(entry[1])))
 
     # return function of mapping from label-> supercat
     return lambda label: result_label_to_group_map.get(label)
@@ -232,7 +227,6 @@ class TemplateDataset(data.Dataset):
 
 
         # Maps each label to number of supercategory group, which is listed in keys of GROUPINGS_TO_NAMES (optional)
-        # self.group_mapping = None
         self.group_mapping = group_mapping_creator(self.labels_to_names, GROUPINGS_TO_NAMES)
 
         # Labels, that are entries from self.categories, that correspond to people (optional)
