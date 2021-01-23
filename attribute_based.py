@@ -40,7 +40,6 @@ def detect_face(filepath, info, client):
 #Note: attribute possible values and names are passed in with args: --attribute_values '2' --attribute_names 'male female'
 def size_and_distance(dataloader, args):
     num_attrs = int(args.attribute_values)
-    #attr_names = args.attribute_names.split()
 
     sizes = [[] for i in range(num_attrs)]
     tiny_sizes = [[] for i in range(num_attrs)]
@@ -72,7 +71,6 @@ def size_and_distance(dataloader, args):
 
         # Only look at image if there is an attribute to analyze (Note attribute require a bbox around the person or thing to analyze)
         if len(attribute)> 1:
-        #if len(gender) > 1:
             shape = list(data.size())[1:]
             bbox = attribute[1]
             bbox_adjust = np.array([bbox[0]*shape[1], bbox[1]*shape[1], bbox[2]*shape[0], bbox[3]*shape[0]])
@@ -119,7 +117,6 @@ def size_and_distance(dataloader, args):
                 continue
 
             sizes[attribute[0] - 1].append(size)
-            # sizes[gender[0] - 1].append(pixel_size)
             distances[attribute[0] - 1].append(distance)
 
     if FACE_DETECT == 0:
@@ -136,7 +133,6 @@ def size_and_distance(dataloader, args):
     pickle.dump(stats, open("results/{}/1.pkl".format(args.folder), "wb"))
 
 def count_cooccurrence(dataloader, args):
-    #counts = [{}, {}]
     num_attrs = int(args.attribute_values)
 
     counts = [{} for i in range(num_attrs)]
@@ -144,17 +140,13 @@ def count_cooccurrence(dataloader, args):
     for i in range(len(dataloader.dataset.categories)):
         for a in range(num_attrs):
             counts[a]["{0}-{1}".format(i, i)]= 0
-        #counts[0]["{0}-{1}".format(i, i)] = 0
-        #counts[1]["{0}-{1}".format(i, i)] = 0
         for j in range(i+1, len(dataloader.dataset.categories)):
             for a in range(num_attrs):
                 counts[a]["{0}-{1}".format(i, j)] = 0
-            #counts[0]["{0}-{1}".format(i, j)] = 0
-            #counts[1]["{0}-{1}".format(i, j)] = 0
+            
 
     for i, (data, target) in enumerate(tqdm(dataloader)):
         attribute = target[1]
-        #gender = target[1]
         anns = target[0]
         if len(attribute) > 1:
             categories = list(set([ann['label'] for ann in anns]))
@@ -174,7 +166,6 @@ def distance_for_instance(dataloader, args):
     num_attrs = int(args.attribute_values)
     categories = dataloader.dataset.categories
     distances = [[[] for a in range(num_attrs)] for i in range(len(categories))]
-    #distances = [[[], []] for i in range(len(categories))]
 
     for i, (data, target) in enumerate(tqdm(dataloader)):
         attribute = target[1]
@@ -223,9 +214,6 @@ def cluster_for_instance(dataloader, args):
     scene_features = [[]*num_attrs for i in range(len(categories))]
     instance_features = [[]*num_attrs for i in range(len(categories))]
     scene_filepaths = [[]*num_attrs for i in range(len(categories))]
-    #scene_features = [[[], []] for i in range(len(categories))]
-    #instance_features = [[[], []] for i in range(len(categories))]
-    #scene_filepaths = [[[], []] for i in range(len(categories))]
 
     # Extracts features of just the cropped object
     model_file = 'cifar_resnet110.th'
