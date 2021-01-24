@@ -710,16 +710,12 @@ class CelebADataset(data.Dataset):
     
     def __init__(self, transform):
         self.transform = transform
-        
         self.img_folder = 'celeba'
-
         self.annotations_folder = 'Anno'
-
         
         self.image_ids = []
         #Adds the title of the image as its ID (e.g. 000006.jpg = 000006)
         with open('Anno/identity_CelebA.txt') as f:
-            
             for line in f:
                 stripped_line = line.strip()
                 stripped_line = stripped_line.split()
@@ -744,7 +740,6 @@ class CelebADataset(data.Dataset):
             self.labels_to_names[category] = category
         print("done with categories (2/4 dataset steps)")
         
-
         self.scene_mapping = NoneDict()
         if os.path.exists('dataloader_files/celeba_scene_mapping.pkl'):
             self.scene_mapping = pickle.load(open('dataloader_files/celeba_scene_mapping.pkl', 'rb'))
@@ -757,7 +752,6 @@ class CelebADataset(data.Dataset):
         #Note: This refers to labels that describe people in images
         self.people_labels = []
         
-
         #Needs to exist for gender analysis
         self.num_gender_images = [0, 0]
         count = 0
@@ -798,7 +792,6 @@ class CelebADataset(data.Dataset):
 
         #For each image, get gender and category information
         with open('Anno/list_attr_celeba.txt') as f:
-            
             for line in f:
                 stripped_line = line.strip()
                 if image_id in stripped_line:
@@ -829,7 +822,6 @@ class CelebADataset(data.Dataset):
             gender = 1
         else:
             gender = 0
-        
         
         gender_info = [gender, bbox_digits]
        
