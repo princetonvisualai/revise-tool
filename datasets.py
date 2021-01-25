@@ -284,29 +284,31 @@ class CoCoDataset(data.Dataset):
     def __init__(self, transform):
         self.transform = transform
         
-        #self.img_folder = 'Data/Coco/2014data/train2014'
-        #self.coco = COCO('Data/Coco/2014data/annotations/instances_train2014.json')
+        self.img_folder = 'Data/Coco/2014data/train2014'
+        self.coco = COCO('Data/Coco/2014data/annotations/instances_train2014.json')
         
         #Change according to the attribute you want to analyze (In this example, we analyze bias in skin tones using annotations on 2017val)
-        self.skin_tone = {}
-        count = 0
-        with open('Data/Coco/2017data/bias_splits/imageAnnotations.csv', 'r') as read_obj:
-            csv_reader = csv.reader(read_obj)
-            for row in csv_reader:
-                #Skip the heading
-                if count > 1:
+        
+        #Majority skin tone on val2017 data:
+        # self.skin_tone = {}
+        # count = 0
+        # with open('Data/Coco/2017data/bias_splits/imageAnnotations.csv', 'r') as read_obj:
+        #     csv_reader = csv.reader(read_obj)
+        #     for row in csv_reader:
+        #         #Skip the heading
+        #         if count > 1:
                     
-                    self.skin_tone[int(row[0])] = row[4]
+        #             self.skin_tone[int(row[0])] = row[4]
 
-                else:
-                    count += 1
+        #         else:
+        #             count += 1
 
         #Skin tone information put in place of gender info
-        #gender_data = pickle.load(open('Data/Coco/2014data/bias_splits/train.data', 'rb'))
-        #self.gender_info = {int(chunk['img'][15:27]): chunk['annotation'][0] for chunk in gender_data}
+        gender_data = pickle.load(open('Data/Coco/2014data/bias_splits/train.data', 'rb'))
+        self.gender_info = {int(chunk['img'][15:27]): chunk['annotation'][0] for chunk in gender_data}
 
-        self.img_folder = 'Data/Coco/2017data/val2017'
-        self.coco = COCO('Data/Coco/2017data/annotations/instances_val2017.json')
+        #self.img_folder = 'Data/Coco/2017data/val2017'
+        #self.coco = COCO('Data/Coco/2017data/annotations/instances_val2017.json')
         
 
         ids = list(self.coco.anns.keys())
@@ -356,6 +358,7 @@ class CoCoDataset(data.Dataset):
 
         self.people_labels = [1] # instances of self.categories
         self.num_gender_images = [6642, 16324]
+
         
     def __getitem__(self, index):
         image_id = self.image_ids[index]
@@ -437,15 +440,24 @@ class CoCoDataset(data.Dataset):
                     biggest_bbox = bbox
 
         scene = self.scene_mapping.get(file_path, None)
-        if biggest_bbox != 0 and image_id in self.skin_tone.keys():
-            #anns = [formatted_anns, [self.gender_info[image_id] + 1, biggest_bbox], [0], file_path, scene]
-            if self.skin_tone[image_id] == "Dark":
-                index = 0
-            elif self.skin_tone[image_id] == "Light":
-                index = 1
-            else:
-                index = 2
-            anns = [formatted_anns, [index + 1, biggest_bbox], [0], file_path, scene]
+        #To retrieve skin tone information
+        # if biggest_bbox != 0 and image_id in self.skin_tone.keys():
+        #     #anns = [formatted_anns, [self.gender_info[image_id] + 1, biggest_bbox], [0], file_path, scene]
+        #     if self.skin_tone[image_id] == "Dark":
+        #         index = 0
+        #     elif self.skin_tone[image_id] == "Light":
+        #         index = 1
+        #     elif self.skin_tone[image_id]== "Unsure":
+        #         index = 2
+        #     #Both
+        #     else:
+        #         index = 3
+        #     anns = [formatted_anns, [index + 1, biggest_bbox], [0], file_path, scene]
+        # else:
+        #     anns = [formatted_anns, [0], [0], file_path, scene]
+        if biggest_bbox != 0 and image_id in self.gender_info.keys():
+            anns = [formatted_anns, [self.gender_info[image_id] + 1, biggest_bbox], [0], file_path, scene]
+
         else:
             anns = [formatted_anns, [0], [0], file_path, scene]
 
