@@ -107,7 +107,7 @@ def read_xml_content(xml_file):
 
     return list_with_all_boxes
 
-GROUPINGS_TO_NAMES = {
+DEFAULT_GROUPINGS_TO_NAMES = {
     0: 'person',
     1: 'vehicle',
     2: 'outdoor',
@@ -122,7 +122,7 @@ GROUPINGS_TO_NAMES = {
     11: 'indoor'
 }
 
-def group_mapping_creator(labels_to_names, supercategories_to_names=GROUPINGS_TO_NAMES, 
+def group_mapping_creator(labels_to_names, supercategories_to_names=DEFAULT_GROUPINGS_TO_NAMES, 
                           override_map = None):
     '''
     inputs:
@@ -222,12 +222,15 @@ class TemplateDataset(data.Dataset):
         # Can be set up by running AlexNet Places365 model by running the following command:
         # self.scene_mapping = setup_scenemapping(self, '[name of dataset]')
         self.scene_mapping = NoneDict()
+        
+        # default to DEFAULT_GROUPINGS_TO_NAMES
+        self.supercategories_to_names = DEFAULT_GROUPINGS_TO_NAMES
 
         #Note: Any of the 'optional' attributes may be necessary depending on analysis and metrics, check before not filling in
 
 
-        # Maps each label to number of supercategory group, which is listed in keys of GROUPINGS_TO_NAMES (optional)
-        self.group_mapping = group_mapping_creator(self.labels_to_names, GROUPINGS_TO_NAMES)
+        # Maps each label to number of supercategory group, (optional)
+        self.group_mapping = group_mapping_creator(self.labels_to_names, self.supercategories_to_names)
 
         # Labels, that are entries from self.categories, that correspond to people (optional)
         self.people_labels = []
@@ -271,6 +274,7 @@ class OpenImagesDataset(data.Dataset):
     def __init__(self, transform):
         self.transform = transform
         
+        self.supercategories_to_names = DEFAULT_GROUPINGS_TO_NAMES
         self.img_folder = 'Data/OpenImages/'
         with open('Data/OpenImages/train-images-boxable-with-rotation.csv', newline='') as csvfile:
             data = list(csv.reader(csvfile))[1:]
@@ -376,6 +380,7 @@ class CoCoDataset(data.Dataset):
     def __init__(self, transform):
         self.transform = transform
         
+        self.supercategories_to_names = DEFAULT_GROUPINGS_TO_NAMES
         self.img_folder = 'Data/Coco/2014data/train2014'
         self.coco = COCO('Data/Coco/2014data/annotations/instances_train2014.json')
         gender_data = pickle.load(open('Data/Coco/2014data/bias_splits/train.data', 'rb'))
@@ -519,6 +524,7 @@ class CoCoDataset(data.Dataset):
 class CoCoDatasetNoImages(data.Dataset):
 
     def __init__(self, transform):
+        self.supercategories_to_names = DEFAULT_GROUPINGS_TO_NAMES
         self.coco = COCO('Data/Coco/2014data/annotations/instances_train2014.json')
         
         ids = list(self.coco.anns.keys())
@@ -622,6 +628,7 @@ class ImagenetDataset(data.Dataset):
     def __init__(self, transform):
         self.transform = transform
         
+        self.supercategories_to_names = DEFAULT_GROUPINGS_TO_NAMES
         self.img_folder = 'Data/ImageNet/ILSVRC_2014_Images/ILSVRC2014_DET_train'
         self.annotations_folder = 'Data/ImageNet/ILSVRC_2014_Annotations/ILSVRC2014_DET_bbox_train'
         self.image_ids = [str(num).zfill(8) for num in range(1, 60659)]
@@ -666,6 +673,7 @@ class YfccPlacesDataset(data.Dataset):
     def __init__(self, transform, metric=0):
         self.transform = transform
         
+        self.supercategories_to_names = DEFAULT_GROUPINGS_TO_NAMES
         self.img_folder = 'Data/YFCC100m/data/images'
 
         self.mapping = pickle.load(open('Data/YFCC100m/yfcc_mappings.pkl', 'rb')) #7.6GB
