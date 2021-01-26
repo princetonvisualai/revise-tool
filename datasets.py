@@ -192,7 +192,7 @@ def group_mapping_creator(labels_to_names, supercategories_to_names=DEFAULT_GROU
         result_label_to_group_map.update(override_nonhuman_readable)
 
     # print mapping in human-readable form so user can adjust if necessary
-    print("Here are the 20 LEAST confident labels to supercategory mappings, ranked in increasing confidence.\nChange as necessary using override_map)")
+    print("Here are 20 of the least confident labels to supercategory mappings, ranked in increasing confidence.\nChange as necessary using override_map)")
     print("-------------------------------")
     for entry in list(result_label_to_group_map.items())[:20]:
         print("{0}: {1}".format(labels_to_names.get(entry[0]), supercategories_to_names.get(entry[1])))
@@ -274,7 +274,6 @@ class OpenImagesDataset(data.Dataset):
     def __init__(self, transform):
         self.transform = transform
         
-        self.supercategories_to_names = DEFAULT_GROUPINGS_TO_NAMES
         self.img_folder = 'Data/OpenImages/'
         with open('Data/OpenImages/train-images-boxable-with-rotation.csv', newline='') as csvfile:
             data = list(csv.reader(csvfile))[1:]
@@ -645,7 +644,7 @@ class ImagenetDataset(data.Dataset):
             setup_scenemapping(self, 'imagenet')
 
 
-        self.group_mapping = None
+        self.group_mapping = group_mapping_creator(self.labels_to_names, self.supercategories_to_names)
         self.people_labels = ['n00007846'] # person, index 124
         
     def __getitem__(self, index):
@@ -673,7 +672,6 @@ class YfccPlacesDataset(data.Dataset):
     def __init__(self, transform, metric=0):
         self.transform = transform
         
-        self.supercategories_to_names = DEFAULT_GROUPINGS_TO_NAMES
         self.img_folder = 'Data/YFCC100m/data/images'
 
         self.mapping = pickle.load(open('Data/YFCC100m/yfcc_mappings.pkl', 'rb')) #7.6GB
