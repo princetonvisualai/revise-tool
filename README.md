@@ -105,7 +105,7 @@ If the epsg file is still not found, it can be downloaded manually from [here](h
 conda config --set allow_conda_downgrades true
 conda install conda=4.6.14
 ```
-- environments/environment.yml is for linux machines, try environments/environment_nobuild.yml for other OS's
+- environments/environment.yml for non-Mac machines 
 - Try deleting line 9 of environments/enivronment.yml of ```_libgcc_mutex=0.1=main``` if there are compatability errors
 
 ## Paper and Citation
