@@ -47,17 +47,17 @@ def count_cooccurrence(dataloader, args):
         for j in range(i+1, len(all_categories)):
             counts["{0}-{1}".format(i, j)] = 0
 
-    groupings_size = [[] for i in range(len(DEFAULT_GROUPINGS_TO_NAMES))]
-    groupings_dist = [[] for i in range(len(DEFAULT_GROUPINGS_TO_NAMES))]
+    groupings_size = [[] for i in range(len(dataloader.dataset.supercategories_to_names))]
+    groupings_dist = [[] for i in range(len(dataloader.dataset.supercategories_to_names))]
     group_mapping = dataloader.dataset.group_mapping
     img_center = np.array([.5, .5])
     instances_size = [[] for i in range(len(all_categories))]
 
-    filepaths = [[] for i in range(len(DEFAULT_GROUPINGS_TO_NAMES))] # for qualitative examples in analysis step
+    filepaths = [[] for i in range(len(dataloader.dataset.supercategories_to_names))] # for qualitative examples in analysis step
 
     with_people_instances = np.zeros(len(all_categories))
-    with_people = np.zeros(len(DEFAULT_GROUPINGS_TO_NAMES))
-    not_with_people = np.zeros(len(DEFAULT_GROUPINGS_TO_NAMES))
+    with_people = np.zeros(len(dataloader.dataset.supercategories_to_names))
+    not_with_people = np.zeros(len(dataloader.dataset.supercategories_to_names))
     if hasattr(dataloader.dataset, 'people_labels'):
         people = dataloader.dataset.people_labels
     else:
@@ -161,7 +161,7 @@ def scene_categorization(dataloader, args):
     scenes = np.zeros(len(idx_to_scenegroup))
 
     # For scene-supercategory cooccurrence counts
-    scene_supercategory = np.zeros((len(idx_to_scenegroup), len(DEFAULT_GROUPINGS_TO_NAMES)))
+    scene_supercategory = np.zeros((len(idx_to_scenegroup), len(dataloader.dataset.supercategories_to_names)))
 
     # For scene-instance coocurrence counts
     scene_instance = np.zeros((len(idx_to_scenegroup), len(dataloader.dataset.categories)))
@@ -188,7 +188,7 @@ def scene_categorization(dataloader, args):
     scenes_to_features = {}
     for scene in idx_to_scenegroup.keys():
         scenes_to_features[scene] = []
-    for i in range(len(DEFAULT_GROUPINGS_TO_NAMES)):
+    for i in range(len(dataloader.dataset.supercategories_to_names)):
         supercat_to_scenes_to_features[i] = copy.deepcopy(scenes_to_features)
 
     # To get features from cropped object instance
