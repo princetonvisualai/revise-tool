@@ -287,10 +287,8 @@ class CoCoDataset(data.Dataset):
         self.img_folder = 'Data/Coco/2014data/train2014'
         self.coco = COCO('Data/Coco/2014data/annotations/instances_train2014.json')
 
-        
         gender_data = pickle.load(open('Data/Coco/2014data/bias_splits/train.data', 'rb'))
         self.gender_info = {int(chunk['img'][15:27]): chunk['annotation'][0] for chunk in gender_data}
-
 
         ids = list(self.coco.anns.keys())
         self.image_ids = list(set([self.coco.anns[this_id]['image_id'] for this_id in ids]))
