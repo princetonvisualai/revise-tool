@@ -6,7 +6,6 @@ import torch.utils.data as data
 import os
 import object_based
 import gender_based
-#import attribute_based
 import geography_based
 
 def main():
@@ -21,9 +20,6 @@ def main():
             help='in map below')
     parser.add_argument('--dataset', type=str, default='openimages',
             help='input dataset to format')
-    #Add number of expected attribute values
-    #parser.add_argument('--attribute_values', type=int, default='2',
-    #        help='input dataset to format')
     parser.add_argument('--folder', type=str, default='random',
             help='folder to store results in')
     parser.add_argument('--ngpu', type=int, default=0,
@@ -31,21 +27,6 @@ def main():
 
     args = parser.parse_args()
 
-    #After conversion to attribute_based.py
-    # index_to_measurement = {
-    #     0: object_based.count_cooccurrence,
-    #     1: attribute_based.size_and_distance,
-    #     2: attribute_based.count_cooccurrence,
-    #     3: attribute_based.distance_for_instance,
-    #     4: attribute_based.cluster_for_instance,
-    #     5: geography_based.count_country, 
-    #     6: geography_based.count_tags,
-    #     7: object_based.supercategory_size_and_distance,
-    #     8: object_based.supercategory_with_people,
-    #     9: object_based.scene_categorization,
-    #     10: geography_based.count_langs,
-    #     11: attribute_based.scenes
-    # }
 
     index_to_measurement = {
         0: object_based.count_cooccurrence,
