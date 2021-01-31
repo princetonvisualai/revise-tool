@@ -419,7 +419,6 @@ class CoCoDataset(data.Dataset):
         scene = self.scene_mapping.get(file_path, None)
         if biggest_bbox != 0 and image_id in self.gender_info.keys():
             anns = [formatted_anns, [self.gender_info[image_id] + 1, biggest_bbox], [0], file_path, scene]
-
         else:
             anns = [formatted_anns, [0], [0], file_path, scene]
 

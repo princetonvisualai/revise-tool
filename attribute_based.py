@@ -47,7 +47,6 @@ def size_and_distance(dataloader, args):
     distances = [[] for i in range(num_attrs)]
     img_center = np.array([.5, .5])
 
-
     info = pickle.load(open('util_files/places_scene_info.pkl', 'rb'))
     idx_to_scene = info['idx_to_scene']
     idx_to_scenegroup = info['idx_to_scenegroup']
@@ -65,7 +64,6 @@ def size_and_distance(dataloader, args):
 
     for i, (data, target) in enumerate(tqdm(dataloader)):
         attribute = target[1]
-
         # Only look at image if there is an attribute to analyze (Note attribute require a bbox around the person or thing to analyze)
         if len(attribute)> 1:
             shape = list(data.size())[1:]
@@ -74,7 +72,6 @@ def size_and_distance(dataloader, args):
             pixel_size = (bbox_adjust[1]-bbox_adjust[0])*(bbox_adjust[3]-bbox_adjust[2])
             size = (bbox[1]-bbox[0])*(bbox[3]-bbox[2])
             person_center = np.array([bbox[0] + (bbox[1]/2.), bbox[2] + (bbox[3]/2.)])
-
             distance = np.linalg.norm(person_center - img_center)
             pic = data.data.cpu().numpy()
 
@@ -89,7 +86,6 @@ def size_and_distance(dataloader, args):
                     if face['Confidence'] > .9:
                         yes_face = True
             elif FACE_DETECT == 1:
-                
                 image = cv2.imread(target[3])
                 gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
                 faces = faceCascade.detectMultiScale(
@@ -106,7 +102,6 @@ def size_and_distance(dataloader, args):
             # If there's no face detected and the person is too small, attribute cannot be distinguished
             if not yes_face or pixel_size < 1000.:
                 scene_group = target[4]
-
                 if not yes_face:
                     no_faces[attribute[0]].append((size, pixel_size, scene_group))
                 elif pixel_size < 1000.:
@@ -124,7 +119,6 @@ def size_and_distance(dataloader, args):
     stats['sizes'] = sizes
     stats['tiny_sizes'] = tiny_sizes # tiny sizes that still have a face
     stats['noface_sizes'] = no_faces
-
     stats['distances'] = distances
 
     pickle.dump(stats, open("results/{}/1.pkl".format(args.folder), "wb"))
