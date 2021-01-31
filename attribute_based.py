@@ -39,7 +39,7 @@ def detect_face(filepath, info, client):
 
 #Note: attribute possible values and names are passed in with args: --attribute_values '2' --attribute_names 'male female'
 def size_and_distance(dataloader, args):
-    num_attrs = int(args.attribute_values)
+    num_attrs = len(dataloader.dataset.attribute_names)
 
     sizes = [[] for i in range(num_attrs)]
     tiny_sizes = [[] for i in range(num_attrs)]
@@ -61,12 +61,9 @@ def size_and_distance(dataloader, args):
             detect_info = {}
     elif FACE_DETECT == 1:
         cascPath = "haarcascade_frontalface_default.xml"
-        #Had to add in haarcascades location
         faceCascade = cv2.CascadeClassifier(cv2.data.haarcascades + cascPath)
 
     for i, (data, target) in enumerate(tqdm(dataloader)):
-
-        #We assume attribute information is in 1st index
         attribute = target[1]
 
         # Only look at image if there is an attribute to analyze (Note attribute require a bbox around the person or thing to analyze)
@@ -111,13 +108,13 @@ def size_and_distance(dataloader, args):
                 scene_group = target[4]
 
                 if not yes_face:
-                    no_faces[attribute[0]-1].append((size, pixel_size, scene_group))
+                    no_faces[attribute[0]].append((size, pixel_size, scene_group))
                 elif pixel_size < 1000.:
-                    tiny_sizes[attribute[0]-1].append((size, scene_group))
+                    tiny_sizes[attribute[0]].append((size, scene_group))
                 continue
 
-            sizes[attribute[0] - 1].append(size)
-            distances[attribute[0] - 1].append(distance)
+            sizes[attribute[0]].append(size)
+            distances[attribute[0]].append(distance)
 
     if FACE_DETECT == 0:
         pickle.dump(detect_info, open('{}_rekognitioninfo.pkl'.format(args.folder), 'wb'))

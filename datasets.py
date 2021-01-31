@@ -286,7 +286,6 @@ class CoCoDataset(data.Dataset):
         
         self.img_folder = 'Data/Coco/2014data/train2014'
         self.coco = COCO('Data/Coco/2014data/annotations/instances_train2014.json')
-
         gender_data = pickle.load(open('Data/Coco/2014data/bias_splits/train.data', 'rb'))
         self.gender_info = {int(chunk['img'][15:27]): chunk['annotation'][0] for chunk in gender_data}
 
@@ -337,7 +336,6 @@ class CoCoDataset(data.Dataset):
 
         self.people_labels = [1] # instances of self.categories
         self.num_gender_images = [6642, 16324]
-
         
     def __getitem__(self, index):
         image_id = self.image_ids[index]
@@ -419,7 +417,6 @@ class CoCoDataset(data.Dataset):
                     biggest_bbox = bbox
 
         scene = self.scene_mapping.get(file_path, None)
-
         if biggest_bbox != 0 and image_id in self.gender_info.keys():
             anns = [formatted_anns, [self.gender_info[image_id] + 1, biggest_bbox], [0], file_path, scene]
 

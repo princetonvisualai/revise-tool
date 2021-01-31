@@ -27,7 +27,6 @@ def main():
 
     args = parser.parse_args()
 
-
     index_to_measurement = {
         0: object_based.count_cooccurrence,
         1: gender_based.size_and_distance,
