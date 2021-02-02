@@ -57,7 +57,7 @@ def size_and_distance(dataloader, args):
             detect_info = {}
     elif FACE_DETECT == 1:
         cascPath = "haarcascade_frontalface_default.xml"
-        faceCascade = cv2.CascadeClassifier(cascPath)
+        faceCascade = cv2.CascadeClassifier(cv2.data.haarcascades + cascPath)
 
     for i, (data, target) in enumerate(tqdm(dataloader)):
         gender = target[1]
