@@ -17,7 +17,7 @@ from torch.autograd import Variable
 import torchvision.models as models
 import torch.nn as nn
 from torch.nn import functional as F
-import torch 
+import torch
 
 def collate_fn(batch):
     return batch[0]
