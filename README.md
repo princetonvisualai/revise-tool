@@ -99,7 +99,7 @@ In the jupyter notebook, this may involve setting it in a cell like
 import os
 os.environ['PROJ_LIB'] = '/new/folder/location/of/epsg'
 ```
-If the epsg file is still not found, it can be downloaded manually from [here](https://raw.githubusercontent.com/matplotlib/basemap/master/lib/mpl_toolkits/basemap/data/epsg), with the path locaation set as mentioned.
+If the epsg file is still not found, it can be downloaded manually from [here](https://raw.githubusercontent.com/matplotlib/basemap/master/lib/mpl_toolkits/basemap_data/epsg), with the path locaation set as mentioned.
 - For MacOS, use environments/environment_mac.yml, and if there are errors, try running the following commands first
 ```
 conda config --set allow_conda_downgrades true
