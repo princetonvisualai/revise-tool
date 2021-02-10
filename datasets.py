@@ -252,7 +252,7 @@ class TemplateDataset(data.Dataset):
         image = Image.open(file_path).convert("RGB")
         image = self.transform(image)
 
-        #Note: bbox digits should be: x, y, width, height
+        #Note: bbox digits should be: x, y, width, height. all numbers are scaled to be between 0 and 1
         person_bbox = None # optional
         gender = None # optional, we have used 0 for male and 1 for female when these labels exist (yes, this order is reversed from self.num_gender_images above)
         gender_info = [gender, person_bbox] # optional
