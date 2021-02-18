@@ -18,6 +18,11 @@ import torchvision.models as models
 import torch.nn as nn
 from torch.nn import functional as F
 import torch
+import spacy
+from scipy.special import softmax 
+import numpy as np
+from collections import OrderedDict 
+nlp = spacy.load("en_core_web_lg")
 
 def collate_fn(batch):
     return batch[0]
@@ -102,7 +107,7 @@ def read_xml_content(xml_file):
 
     return list_with_all_boxes
 
-GROUPINGS_TO_NAMES = {
+DEFAULT_GROUPINGS_TO_NAMES = {
     0: 'person',
     1: 'vehicle',
     2: 'outdoor',
@@ -117,6 +122,84 @@ GROUPINGS_TO_NAMES = {
     11: 'indoor'
 }
 
+def group_mapping_creator(labels_to_names, supercategories_to_names=DEFAULT_GROUPINGS_TO_NAMES, 
+                          override_map = None):
+    '''
+    inputs:
+    labels_to_names: dict mapping "label" to "human readable string"
+    supercategories_to_names: dict mapping "supercat" to "human readable string"
+    override_map: dict mapping: "human-readable label" to "human-readable supercat"
+                        for manual overriding of mapping of certain labels
+           
+    output:
+    prints out human-readable label to human readable supercat mapping
+    
+    returns:
+    function that takes an input label, and returns a supercat
+    '''
+    assert (labels_to_names is not None and supercategories_to_names is not None)
+    # precompute the spacy tokens for each of the supercategories
+    supercat_list = list(supercategories_to_names.keys())
+    nlp_supercat = []
+    for supercat in supercat_list:
+        nlp_supercat.append(nlp(supercategories_to_names.get(supercat)))
+    ######################################################################  
+    # function that calculates the "closest" supercategory to input word
+    # and returns said supercategory and the associated softmax confidence score
+    def dist_calculator(word):
+        assert(word is not None)
+        # score array holding distance btwn word and each supercat, for softmax calculation
+        score_arr = []
+        for supercat_token in nlp_supercat:
+            cur_score = supercat_token.similarity(nlp(word))
+            score_arr.append(cur_score)
+        score_arr = softmax(score_arr)
+        return supercat_list[np.argmax(score_arr)], np.max(score_arr)
+    ######################################################################    
+    # this represents the result map from label to supercat
+    result_label_to_group_map = OrderedDict()
+    # (hr_label) is the human-readable value corresponding to the key (label)
+    for label, hr_label in labels_to_names.items():
+        if override_map and hr_label in override_map:
+            # skip if user is overriding with override_map
+            continue
+        # retrieve tuple result from dist_calculator
+        supercat_match = dist_calculator(hr_label)
+        result_label_to_group_map[label] = supercat_match
+        
+    # sort from least to most confident based on softmax scores
+    result_label_to_group_map = OrderedDict(sorted(result_label_to_group_map.items(), key=lambda item: item[1][1]))
+    
+    # remove the softmax scores from the dictionary
+    for k, v in result_label_to_group_map.items():
+        result_label_to_group_map[k] = v[0]
+    
+    # add the harded-coded override_map values if provided:
+    if override_map:
+        # initialize non-human-readable form of override_map
+        override_nonhuman_readable = {}
+        # invert the labels_to_names 
+        names_to_labels = dict((v, k) for k, v in labels_to_names.items())
+        # invert the supercategories_to_names
+        names_to_supercategories = dict((v, k) for k, v in supercategories_to_names.items())
+        # convert human-readable labels and supercats 
+        for k,v in override_map.items():
+            label = names_to_labels.get(k)
+            supercat = names_to_supercategories.get(v)
+            assert label in labels_to_names and supercat in supercategories_to_names, "override string not valid"
+            override_nonhuman_readable[label] = supercat
+        # add overriden dict to result dict 
+        result_label_to_group_map.update(override_nonhuman_readable)
+
+    # print mapping in human-readable form so user can adjust if necessary
+    print("Here are 20 of the least confident labels to supercategory mappings, ranked in increasing confidence.\nChange as necessary using override_map)")
+    print("-------------------------------")
+    for entry in list(result_label_to_group_map.items())[:20]:
+        print("{0}: {1}".format(labels_to_names.get(entry[0]), supercategories_to_names.get(entry[1])))
+
+    # return function of mapping from label-> supercat
+    return lambda label: result_label_to_group_map.get(label)
+
 class TemplateDataset(data.Dataset):
     
     def __init__(self, transform):
@@ -126,6 +209,7 @@ class TemplateDataset(data.Dataset):
         self.img_folder = ''
 
         # List of all of the image ids
+        # Note: This is some representation of the image, can be integer or name of image
         self.image_ids = [] 
 
         # Maps label to the human-readable name
@@ -138,14 +222,20 @@ class TemplateDataset(data.Dataset):
         # Can be set up by running AlexNet Places365 model by running the following command:
         # self.scene_mapping = setup_scenemapping(self, '[name of dataset]')
         self.scene_mapping = NoneDict()
+        
+        # default to DEFAULT_GROUPINGS_TO_NAMES
+        self.supercategories_to_names = DEFAULT_GROUPINGS_TO_NAMES
 
-        # Maps each label to number of supercategory group, which is listed in keys of GROUPINGS_TO_NAMES (optional)
-        self.group_mapping = None
+        #Note: Any of the 'optional' attributes may be necessary depending on analysis and metrics, check before not filling in
 
-        # Labels that correspond to people (optional)
+
+        # Maps each label to number of supercategory group, (optional)
+        self.group_mapping = group_mapping_creator(self.labels_to_names, self.supercategories_to_names)
+
+        # Labels, that are entries from self.categories, that correspond to people (optional)
         self.people_labels = []
 
-        # Number of images from dataset that are female and male (optional, doesn't need to exist)
+        # Number of images from dataset that are female at index 0 and male at index 1 (optional, doesn't need to exist)
         self.num_gender_images = [0, 0]
         
     def __getitem__(self, index):
@@ -162,14 +252,19 @@ class TemplateDataset(data.Dataset):
         image = Image.open(file_path).convert("RGB")
         image = self.transform(image)
 
+        #Note: bbox digits should be: x, y, width, height. all numbers are scaled to be between 0 and 1
         person_bbox = None # optional
-        gender = None # optional, we have used 0 for female and 1 for male when these labels exist
+        gender = None # optional, we have used 0 for male and 1 for female when these labels exist (yes, this order is reversed from self.num_gender_images above)
         gender_info = [gender, person_bbox] # optional
 
         country = None # optional
 
+        #Note: This is a map of present labels: image_anns = [{‘label’: ‘tennis_ball’}, {‘label’: ‘dog’}] where the image has a tennis ball and a dog
         image_anns = None
+
         scene_group = self.scene_mapping[file_path] # optional
+
+        #Note: Gender info should not be in an array since gender_info is already array
         anns = [image_anns, [gender_info], [country], file_path, scene_group]
 
         return image, anns
@@ -284,6 +379,7 @@ class CoCoDataset(data.Dataset):
     def __init__(self, transform):
         self.transform = transform
         
+        self.supercategories_to_names = DEFAULT_GROUPINGS_TO_NAMES
         self.img_folder = 'Data/Coco/2014data/train2014'
         self.coco = COCO('Data/Coco/2014data/annotations/instances_train2014.json')
         gender_data = pickle.load(open('Data/Coco/2014data/bias_splits/train.data', 'rb'))
@@ -346,6 +442,51 @@ class CoCoDataset(data.Dataset):
 
     def __len__(self):
         return len(self.image_ids)
+    
+    # helper function if using step 0.5 in README to initialize
+    # folder_path so from_path_prerun() can access correct
+    # data location
+    def init_folder_path(self, folder_path):
+        self.folder_path = folder_path
+    
+    # only if using step 0.5 in README, copy of from_path() except
+    # with filename modification to access data path 
+    def from_path_prerun(self, file_path):
+        image_id = int(os.path.basename(file_path)[-16:-4])
+        # need for scene map since the dict uses 
+        # original file name as key
+        original_file_path = file_path
+        # change file_path to one with right folder_path
+        _, tail = os.path.split(file_path)
+        file_path = self.folder_path + tail
+
+        image = Image.open(file_path).convert("RGB")
+        image = self.transform(image)
+        image_size = list(image.size())[1:]
+
+        annIds = self.coco.getAnnIds(imgIds=image_id);
+        coco_anns = self.coco.loadAnns(annIds) # coco is [x, y, width, height]
+        formatted_anns = []
+        biggest_person = 0
+        biggest_bbox = 0
+        for ann in coco_anns:
+            bbox = ann['bbox']
+            bbox = [bbox[0] / image_size[1], (bbox[0]+bbox[2]) / image_size[1], bbox[1] / image_size[0], (bbox[1]+bbox[3]) / image_size[0]]
+            new_ann = {'bbox': bbox, 'label': ann['category_id']}
+            formatted_anns.append(new_ann)
+
+            if ann['category_id'] == 1:
+                area = (bbox[1]-bbox[0])*(bbox[3]-bbox[2])
+                if area > biggest_person:
+                    biggest_person = area
+                    biggest_bbox = bbox
+
+        scene = self.scene_mapping.get(original_file_path, None)
+        if biggest_bbox != 0 and image_id in self.gender_info.keys():
+            anns = [formatted_anns, [self.gender_info[image_id] + 1, biggest_bbox], [0], file_path, scene]
+        else:
+            anns = [formatted_anns, [0], [0], file_path, scene]
+        return image, anns        
 
     def from_path(self, file_path):
         image_id = int(os.path.basename(file_path)[-16:-4])
@@ -382,6 +523,7 @@ class CoCoDataset(data.Dataset):
 class CoCoDatasetNoImages(data.Dataset):
 
     def __init__(self, transform):
+        self.supercategories_to_names = DEFAULT_GROUPINGS_TO_NAMES
         self.coco = COCO('Data/Coco/2014data/annotations/instances_train2014.json')
         
         ids = list(self.coco.anns.keys())
@@ -485,6 +627,7 @@ class ImagenetDataset(data.Dataset):
     def __init__(self, transform):
         self.transform = transform
         
+        self.supercategories_to_names = DEFAULT_GROUPINGS_TO_NAMES
         self.img_folder = 'Data/ImageNet/ILSVRC_2014_Images/ILSVRC2014_DET_train'
         self.annotations_folder = 'Data/ImageNet/ILSVRC_2014_Annotations/ILSVRC2014_DET_bbox_train'
         self.image_ids = [str(num).zfill(8) for num in range(1, 60659)]
@@ -501,7 +644,7 @@ class ImagenetDataset(data.Dataset):
             setup_scenemapping(self, 'imagenet')
 
 
-        self.group_mapping = None
+        self.group_mapping = group_mapping_creator(self.labels_to_names, self.supercategories_to_names)
         self.people_labels = ['n00007846'] # person, index 124
         
     def __getitem__(self, index):
@@ -647,5 +790,132 @@ class YfccPlacesDataset(data.Dataset):
             anns = [self.annotations[image_id], [0], [country], file_path, None]
         else:
             anns = [None, [0], [country], file_path, None]
+
+
+        return image, anns
+
+#Works on CelebA face dataset (http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html)
+class CelebADataset(data.Dataset):
+    
+    def __init__(self, transform):
+        self.transform = transform
+        self.img_folder = 'celeba'
+        self.annotations_folder = 'Anno'
+        
+        self.image_ids = []
+        #Adds the title of the image as its ID (e.g. 000006.jpg = 000006)
+        with open('Anno/identity_CelebA.txt') as f:
+            for line in f:
+                stripped_line = line.strip()
+                stripped_line = stripped_line.split()
+                self.image_ids.append(stripped_line[0])
+        
+        print("done with ids (1/4 dataset steps)")
+
+        # List of all the labels (e.g. Young, mustache)
+        count = 0
+        with open('Anno/list_attr_celeba.txt') as f:
+            for line in f:
+                stripped_line = line.strip()
+                stripped_line = stripped_line.split()
+                self.categories =stripped_line
+                count += 1
+                if count == 2:
+                    break
+        
+        #category name is just equal to that category name ("young" = "young")
+        self.labels_to_names = {}
+        for category in self.categories:
+            self.labels_to_names[category] = category
+        print("done with categories (2/4 dataset steps)")
+        
+        self.scene_mapping = NoneDict()
+        if os.path.exists('dataloader_files/celeba_scene_mapping.pkl'):
+            self.scene_mapping = pickle.load(open('dataloader_files/celeba_scene_mapping.pkl', 'rb'))
+        else:
+            setup_scenemapping(self, 'celeba')
+        
+        print("done with scene mapping (3/4 dataset steps)")
+        self.group_mapping = None
+
+        #Note: This refers to labels that describe people in images
+        self.people_labels = []
+        
+        #Needs to exist for gender analysis
+        self.num_gender_images = [0, 0]
+        count = 0
+        with open('Anno/list_attr_celeba.txt') as f:
+            for line in f:
+                if count >= 2:
+                    stripped_line = line.strip()
+                    stripped_line = stripped_line.split()
+                    image_values = stripped_line[1:]
+                    gender = int(image_values[20])
+                    if gender > 0:
+                        self.num_gender_images[1] += 1
+                    else:
+                        self.num_gender_images[0] += 1
+                count += 1
+                
+        print("done with gender counting (4/4 dataset steps)")
+        print(self.num_gender_images)
+        
+    def __getitem__(self, index):
+        image_id = self.image_ids[index]
+        file_path = self.img_folder + '/' + image_id
+        return self.from_path(file_path)
+
+    def __len__(self):
+        return len(self.image_ids)
+
+    def from_path(self, file_path):
+        image_id = os.path.basename(file_path)
+
+        image = Image.open(file_path).convert("RGB")
+        image = self.transform(image)
+        image_size = list(image.size())[1:]
+
+        country = None
+
+        image_anns = []
+
+        #For each image, get gender and category information
+        with open('Anno/list_attr_celeba.txt') as f:
+            for line in f:
+                stripped_line = line.strip()
+                if image_id in stripped_line:
+                    stripped_line = stripped_line.split()
+                    image_values = stripped_line[1:]
+                    #From values, gender value is at index 20
+                    gender = int(image_values[20])
+                    #For all categories, add an annotation for that category if value is 1 for particular image
+                    for category in range(len(self.categories)):
+                        if int(image_values[category]) == 1:
+                            image_anns.append({'label':self.categories[category]})
+                    break
+        #For each image, get bbox information and add to bbox_digits
+        with open('Anno/list_bbox_celeba.txt') as bbox_f:
+            for line in bbox_f:
+                stripped_line = line.strip()
+                if image_id in stripped_line:
+                    stripped_line = stripped_line.split()
+                    bbox = stripped_line[1:]
+                    
+                    #x,y,width,height
+                    #Normalize digits in same way as done in Coco
+                    bbox_digits = [int(bbox[0]) / image_size[1], (int(bbox[0])+int(bbox[2])) / image_size[1], int(bbox[1]) / image_size[0], (int(bbox[1])+int(bbox[3])) / image_size[0]]
+                    break
+        
+        #Females are marked as 1, and males as 0
+        if gender < 0:
+            gender = 1
+        else:
+            gender = 0
+        
+        gender_info = [gender, bbox_digits]
+       
+        scene_group = self.scene_mapping[file_path]
+        #Note: Gender info should not be in array since gender_info is already array
+        anns = [image_anns, gender_info, [country], file_path, scene_group]
 
         return image, anns
