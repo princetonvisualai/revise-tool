@@ -16,7 +16,7 @@ def main():
         os.mkdir("results")
 
     parser = argparse.ArgumentParser(description='Measurement')
-    parser.add_argument('--measurements', nargs='+', type=int, default=0,
+    parser.add_argument('--measurements', nargs='+', type=str, default='obj_cnt',
             help='in map below')
     parser.add_argument('--dataset', type=str, default='openimages',
             help='input dataset to format')
@@ -28,18 +28,18 @@ def main():
     args = parser.parse_args()
 
     index_to_measurement = {
-        0: object_based.count_cooccurrence,
-        1: gender_based.size_and_distance,
-        2: gender_based.count_cooccurrence,
-        3: gender_based.distance_for_instance,
-        4: gender_based.cluster_for_instance,
-        5: geography_based.count_country, 
-        6: geography_based.count_tags,
-        7: object_based.supercategory_size_and_distance,
-        8: object_based.supercategory_with_people,
-        9: object_based.scene_categorization,
-        10: geography_based.count_langs,
-        11: gender_based.scenes
+        'obj_cnt': object_based.count_cooccurrence,
+        'att_siz': gender_based.size_and_distance,
+        'att_cnt': gender_based.count_cooccurrence,
+        'att_dis': gender_based.distance_for_instance,
+        'att_clu': gender_based.cluster_for_instance,
+        'geo_ctr': geography_based.count_country, 
+        'geo_tag': geography_based.count_tags,
+        'obj_siz': object_based.supercategory_size_and_distance,
+        'obj_ppl': object_based.supercategory_with_people,
+        'obj_scn': object_based.scene_categorization,
+        'geo_lng': geography_based.count_langs,
+        'att_scn': gender_based.scenes
     }
 
 
