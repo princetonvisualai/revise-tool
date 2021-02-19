@@ -25,11 +25,11 @@ bash download.sh
 - Note: we use [Amazon Rekognition](https://aws.amazon.com/rekognition/)'s proprietery facial detection tool in our analyses, which does incur a charge, and this will need to be set up for each user (instructions on Amazon's site). There are many free facial detection tools available as well, and you can change what is used in gender_based.py . One such free facial detection tool through cv2 is already implemented, and simply involves changing the FACE_DETECT variable in gender_based.py from 0 to 1 to use this instead.
 
 ## Steps to perform analysis:
-(0.5 optional) To experiment with the tool on the COCO dataset for Object-Based and Gender-Based metrics without having to run all the measurements on a dataset first, download the pickle files from [here](https://drive.google.com/drive/folders/1cGUr2ruV7IRl4h8EGtCjRCsg8wtPVu5P?usp=sharing), and place them in a folder in the tool directory called results/coco_example. Also download the [2014 COCO dataset](https://cocodataset.org/#download) as well as [gender annotations](https://github.com/uclanlp/reducingbias/tree/master/data/COCO), and place them in customizable filepaths specified in the code [here](https://github.com/princetonvisualai/revise-tool/blob/master/datasets.py#L287). Those lacking the necessary storage space for the COCO dataset on their local machine can still see much of the functionality by simply heading to section 1.1 (Initial Setup) on each analysis notebook and changing the dataset class from "CoCoDataset" to "CoCoDatasetNoImages". Then, skip to Step 3.
+(0.5 optional) To experiment with the tool on the COCO dataset for Object-Based and Gender-Based metrics without having to run all the measurements on a dataset first, download the pickle files from [here](https://drive.google.com/drive/folders/1cGUr2ruV7IRl4h8EGtCjRCsg8wtPVu5P?usp=sharing), and place them in a folder in the tool directory called results/coco_example. Also download the [2014 COCO dataset](https://cocodataset.org/#download) as well as [gender annotations](https://github.com/uclanlp/reducingbias/tree/master/data/COCO), and place them in customizable filepaths specified in the code [here](https://github.com/princetonvisualai/revise-tool/blob/master/datasets.py#L383). Those lacking the necessary storage space for the COCO dataset on their local machine can still see much of the functionality by simply heading to section 1.1 (Initial Setup) on each analysis notebook and changing the dataset class from "CoCoDataset" to "CoCoDatasetNoImages". Then, skip to Step 3.
 
 (1) Make a dataloader structured like the 'Template Dataset' in datasets.py (add to main_measure.py as well), and fill in with the dataset you would like to analyze
 
-(2) Run main_measure to make a pass through the data and collect the metrics for analysis, for example to get measurements att_siz, att_cnt, att_dis, att_clu, obj_scn, geo_lng, att_scn on COCO and have the file be saved in coco_example:
+(2) Run main_measure to make a pass through the data and collect the metrics for analysis, for example to get measurements (details in section below) att_siz, att_cnt, att_dis, att_clu, obj_scn, geo_lng, att_scn on COCO and have the file be saved in coco_example:
 ```
 python3 main_measure.py --measurements 'att_siz' 'att_cnt' 'att_dis' 'att_clu' 'obj_scn' 'geo_lng' 'att_scn' --dataset 'coco' --folder 'coco_example'
 ```
@@ -99,13 +99,13 @@ In the jupyter notebook, this may involve setting it in a cell like
 import os
 os.environ['PROJ_LIB'] = '/new/folder/location/of/epsg'
 ```
-If the epsg file is still not found, it can be downloaded manually from [here](https://raw.githubusercontent.com/matplotlib/basemap/master/lib/mpl_toolkits/basemap/data/epsg), with the path locaation set as mentioned.
+If the epsg file is still not found, it can be downloaded manually from [here](https://raw.githubusercontent.com/matplotlib/basemap/master/lib/mpl_toolkits/basemap_data/epsg), with the path locaation set as mentioned.
 - For MacOS, use environments/environment_mac.yml, and if there are errors, try running the following commands first
 ```
 conda config --set allow_conda_downgrades true
 conda install conda=4.6.14
 ```
-- environments/environment.yml is for linux machines, try environments/environment_nobuild.yml for other OS's
+- environments/environment.yml for non-Mac machines 
 - Try deleting line 9 of environments/enivronment.yml of ```_libgcc_mutex=0.1=main``` if there are compatability errors
 
 ## Paper and Citation

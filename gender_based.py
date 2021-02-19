@@ -57,7 +57,7 @@ def size_and_distance(dataloader, args):
             detect_info = {}
     elif FACE_DETECT == 1:
         cascPath = "haarcascade_frontalface_default.xml"
-        faceCascade = cv2.CascadeClassifier(cascPath)
+        faceCascade = cv2.CascadeClassifier(cv2.data.haarcascades + cascPath)
 
     for i, (data, target) in enumerate(tqdm(dataloader)):
         gender = target[1]
@@ -192,9 +192,9 @@ def cluster_for_instance(dataloader, args):
     model.load_state_dict(state_dict)
     model.eval()
 
-    scene_classifier = model.classifier
+    scene_classifier = model.fc
     new_classifier = nn.Sequential()
-    model.classifier = new_classifier
+    model.fc = new_classifier
 
     categories = dataloader.dataset.categories
     scene_features = [[[], []] for i in range(len(categories))]
