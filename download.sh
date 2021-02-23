@@ -1,6 +1,6 @@
 #!/bin/bash
 
-curl -O https://github.com/akamaster/pytorch_resnet_cifar10/raw/master/pretrained_models/resnet110-1d1ed7c2.th
+curl -LJO https://github.com/akamaster/pytorch_resnet_cifar10/raw/master/pretrained_models/resnet110-1d1ed7c2.th
 
 mv resnet110-1d1ed7c2.th cifar_resnet110.th
 
