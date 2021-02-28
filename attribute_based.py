@@ -135,12 +135,9 @@ def count_cooccurrence(dataloader, args):
             for a in range(num_attrs):
                 counts[a]["{0}-{1}".format(i, j)] = 0
             
-    counts_images = [0, 0, 0, 0]
     for i, (data, target) in enumerate(tqdm(dataloader)):
         attribute = target[1]
         
-        if len(attribute)>1:
-            counts_images[attribute[0]] += 1
         anns = target[0]
         if len(attribute) > 1:
             categories = list(set([ann['label'] for ann in anns]))
@@ -153,5 +150,4 @@ def count_cooccurrence(dataloader, args):
                         counts[attribute[0]]["{0}-{1}".format(cat_a, cat_b)] += 1
                     else:
                         counts[attribute[0]]["{0}-{1}".format(cat_b, cat_a)] += 1
-    print(counts_images)
     pickle.dump(counts, open("results/{}/2.pkl".format(args.folder), "wb"))
