@@ -39,7 +39,7 @@ def bb_intersection_over_union(boxA, boxB):
     # return the intersection over union value
     return iou
 
-def count_cooccurrence(dataloader, args):
+def obj_cnt(dataloader, args):
     counts = {}
     all_categories = dataloader.dataset.categories
     for i in range(len(all_categories)):
@@ -143,15 +143,15 @@ def count_cooccurrence(dataloader, args):
     stats['with_people_instances'] = with_people_instances
     stats['filepaths'] = filepaths
     stats['instances_size'] = instances_size
-    pickle.dump(stats, open("results/{}/0.pkl".format(args.folder), "wb"))
+    pickle.dump(stats, open("results/{}/obj_cnt.pkl".format(args.folder), "wb"))
 
-def supercategory_size_and_distance(dataloader, args):
+def obj_siz(dataloader, args):
     count_cooccurrence(dataloader, args)
 
-def supercategory_with_people(dataloader, args):
+def obj_ppl(dataloader, args):
     count_cooccurrence(dataloader, args)
 
-def scene_categorization(dataloader, args):
+def obj_scn(dataloader, args):
     info = pickle.load(open('util_files/places_scene_info.pkl', 'rb'))
     idx_to_scene = info['idx_to_scene']
     idx_to_scenegroup = info['idx_to_scenegroup']
@@ -160,7 +160,7 @@ def scene_categorization(dataloader, args):
     # For overall scene counts
     scenes = np.zeros(len(idx_to_scenegroup))
 
-    # For scene-supercategory cooccurrence counts
+    # For scene-supercategory cooccurrence counts 
     scene_supercategory = np.zeros((len(idx_to_scenegroup), len(dataloader.dataset.supercategories_to_names)))
 
     # For scene-instance coocurrence counts
@@ -254,7 +254,7 @@ def scene_categorization(dataloader, args):
     info['scene_supercategory'] = scene_supercategory
     info['scene_instance'] = scene_instance
     info['supercat_to_scenes_to_features'] = supercat_to_scenes_to_features
-    pickle.dump(info, open('results/{}/9.pkl'.format(args.folder), 'wb'))
+    pickle.dump(info, open('results/{}/obj_scn.pkl'.format(args.folder), 'wb'))
 
 
 

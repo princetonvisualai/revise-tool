@@ -37,7 +37,7 @@ def detect_face(filepath, info, client):
 
     return info
 
-def size_and_distance(dataloader, args):
+def att_siz(dataloader, args):
     sizes = [[], []]
     tiny_sizes = [[], []]
     no_faces = [[], []]
@@ -123,9 +123,9 @@ def size_and_distance(dataloader, args):
 
     stats['distances'] = distances
 
-    pickle.dump(stats, open("results/{}/1.pkl".format(args.folder), "wb"))
+    pickle.dump(stats, open("results/{}/att_siz.pkl".format(args.folder), "wb"))
 
-def count_cooccurrence(dataloader, args):
+def att_cnt(dataloader, args):
     counts = [{}, {}]
     for i in range(len(dataloader.dataset.categories)):
         counts[0]["{0}-{1}".format(i, i)] = 0
@@ -149,9 +149,9 @@ def count_cooccurrence(dataloader, args):
                     else:
                         counts[gender[0] - 1]["{0}-{1}".format(cat_b, cat_a)] += 1
 
-    pickle.dump(counts, open("results/{}/2.pkl".format(args.folder), "wb"))
+    pickle.dump(counts, open("results/{}/att_cnt.pkl".format(args.folder), "wb"))
 
-def distance_for_instance(dataloader, args):
+def att_dis(dataloader, args):
     categories = dataloader.dataset.categories
     distances = [[[], []] for i in range(len(categories))]
     for i, (data, target) in enumerate(tqdm(dataloader)):
@@ -177,9 +177,9 @@ def distance_for_instance(dataloader, args):
                     distances[categories.index(ann['label'])][gender[0] - 1].append((distance, person_area, ann_area, file_path, j))
                     seen_instances.append(categories.index(ann['label']))
 
-    pickle.dump(distances, open("results/{}/3.pkl".format(args.folder), "wb"))
+    pickle.dump(distances, open("results/{}/att_dis.pkl".format(args.folder), "wb"))
 
-def cluster_for_instance(dataloader, args):
+def att_clu(dataloader, args):
     use_cuda = not args.ngpu and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
@@ -245,9 +245,9 @@ def cluster_for_instance(dataloader, args):
     stats['instance'] = instance_features
     stats['scene'] = scene_features
     stats['scene_filepaths'] = scene_filepaths
-    pickle.dump(stats, open("results/{}/4.pkl".format(args.folder), "wb"))
+    pickle.dump(stats, open("results/{}/att_clu.pkl".format(args.folder), "wb"))
 
-def scenes(dataloader, args):
+def att_scn(dataloader, args):
     info = pickle.load(open('util_files/places_scene_info.pkl', 'rb'))
     idx_to_scene = info['idx_to_scene']
     idx_to_scenegroup = info['idx_to_scenegroup']
@@ -265,6 +265,6 @@ def scenes(dataloader, args):
 
     info_stats = {}
     info_stats['scenes_per'] = scenes_per
-    pickle.dump(info_stats, open('results/{}/11.pkl'.format(args.folder), 'wb'))
+    pickle.dump(info_stats, open('results/{}/att_scn.pkl'.format(args.folder), 'wb'))
 
 

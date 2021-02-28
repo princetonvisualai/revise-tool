@@ -28,18 +28,18 @@ def main():
     args = parser.parse_args()
 
     index_to_measurement = {
-        'obj_cnt': object_based.count_cooccurrence,
-        'att_siz': gender_based.size_and_distance,
-        'att_cnt': gender_based.count_cooccurrence,
-        'att_dis': gender_based.distance_for_instance,
-        'att_clu': gender_based.cluster_for_instance,
-        'geo_ctr': geography_based.count_country, 
-        'geo_tag': geography_based.count_tags,
-        'obj_siz': object_based.supercategory_size_and_distance,
-        'obj_ppl': object_based.supercategory_with_people,
-        'obj_scn': object_based.scene_categorization,
-        'geo_lng': geography_based.count_langs,
-        'att_scn': gender_based.scenes
+        'obj_cnt': object_based.obj_cnt,
+        'att_siz': gender_based.att_siz,
+        'att_cnt': gender_based.att_cnt,
+        'att_dis': gender_based.att_dis,
+        'att_clu': gender_based.att_clu,
+        'geo_ctr': geography_based.geo_ctr, 
+        'geo_tag': geography_based.geo_tag,
+        'obj_siz': object_based.obj_siz,
+        'obj_ppl': object_based.obj_ppl,
+        'obj_scn': object_based.obj_scn,
+        'geo_lng': geography_based.geo_lng,
+        'att_scn': gender_based.att_scn
     }
 
 
