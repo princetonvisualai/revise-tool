@@ -58,7 +58,7 @@ def country_to_iso3(country):
     return iso3
 
 def sixprep(dataset, folder_name):
-    info_stats = pickle.load(open("results/{}/6.pkl".format(folder_name), "rb")) #20GB
+    info_stats = pickle.load(open("results/{}/geo_tag.pkl".format(folder_name), "rb")) #20GB
     country_tags = info_stats['country_tags']
     tag_to_subregion_features = info_stats['tag_to_subregion_features']
     iso3_to_subregion = pickle.load(open('iso3_to_subregion_mappings.pkl', 'rb'))
@@ -75,7 +75,7 @@ def sixprep(dataset, folder_name):
     sum_total_counts = int(np.sum(total_counts))
     pvalues_over = {} # pvalue : '[country]: [tag] (country num and total num info for now)'
     pvalues_under = {} 
-    if not os.path.exists("checkpoints/{}/6_a.pkl".format(folder_name)):
+    if not os.path.exists("checkpoints/{}/geo_tag_a.pkl".format(folder_name)):
         for country, counts in country_tags.items():
             tags_for_country = int(np.sum(counts))
             if tags_for_country < 50: # threshold for country to have at least 50 tags so there are enough samples for analysis
@@ -91,11 +91,11 @@ def sixprep(dataset, folder_name):
                     pvalues_over[p] = tag_info
                 else:
                     pvalues_under[p] = tag_info
-        pickle.dump([pvalues_under, pvalues_over], open('checkpoints/{}/6_a.pkl'.format(folder_name), 'wb'))
+        pickle.dump([pvalues_under, pvalues_over], open('checkpoints/{}/geo_tag_a.pkl'.format(folder_name), 'wb'))
     else:
-        pvalues_under, pvalues_over = pickle.load(open('checkpoints/{}/6_a.pkl'.format(folder_name), 'rb'))
+        pvalues_under, pvalues_over = pickle.load(open('checkpoints/{}/geo_tag_a.pkl'.format(folder_name), 'rb'))
 
-    if not os.path.exists('checkpoints/{}/6_b.pkl'.format(folder_name)):
+    if not os.path.exists('checkpoints/{}/geo_tag_b.pkl'.format(folder_name)):
         phrase_to_value = {}
         ## Look at appearance differences in how a tag is represented across subregions
         for tag in tag_to_subregion_features.keys():
@@ -184,10 +184,10 @@ def sixprep(dataset, folder_name):
             phrase = dataset.labels_to_names[dataset.categories[tag]]
             phrase_to_value[phrase] = [value, all_subregions[diff_subregion], acc, acc_random, num_features, j_to_acc]
             
-            pickle.dump([original_labels, class_probs, class_preds, diff_subregion, all_filepaths], open('results/{0}/{1}/{2}_info.pkl'.format(folder_name, 6, dataset.labels_to_names[dataset.categories[tag]]), 'wb'))
-        pickle.dump(phrase_to_value, open('checkpoints/{}/6_b.pkl'.format(folder_name), 'wb'))
+            pickle.dump([original_labels, class_probs, class_preds, diff_subregion, all_filepaths], open('results/{0}/{1}/{2}_info.pkl'.format(folder_name, 'geo_tag', dataset.labels_to_names[dataset.categories[tag]]), 'wb'))
+        pickle.dump(phrase_to_value, open('checkpoints/{}/geo_tag_b.pkl'.format(folder_name), 'wb'))
     else:
-        phrase_to_value = pickle.load(open('checkpoints/{}/6_b.pkl'.format(folder_name), 'rb'))
+        phrase_to_value = pickle.load(open('checkpoints/{}/geo_tag_b.pkl'.format(folder_name), 'rb'))
 
 def tenprep(dataset, folder_name):
     iso3_to_subregion = pickle.load(open('iso3_to_subregion_mappings.pkl', 'rb'))
@@ -195,7 +195,7 @@ def tenprep(dataset, folder_name):
     iso3_to_lang = mappings['iso3_to_lang']
     lang_to_iso3 = mappings['lang_to_iso3']
 
-    lang_info = pickle.load(open('results/{}/10.pkl'.format(folder_name), 'rb'))
+    lang_info = pickle.load(open('results/{}/geo_lng.pkl'.format(folder_name), 'rb'))
     counts = lang_info['lang_counts']
     country_with_langs = lang_info['country_with_langs']
     country_with_imgs = lang_info['country_with_imgs']
@@ -262,7 +262,7 @@ def tenprep(dataset, folder_name):
     subregion_to_percents_phrase = {}
 
     for key in subregion_to_percents.keys():
-        if not os.path.exists('results/{0}/{1}/{2}_info.pkl'.format(folder_name, 10, key.replace(' ', '_'))):
+        if not os.path.exists('results/{0}/{1}/{2}_info.pkl'.format(folder_name, 'geo_lng', key.replace(' ', '_'))):
             low_bound, high_bound = wilson(1 - subregion_to_percents[key][0] / subregion_to_percents[key][1], subregion_to_percents[key][1])
 
             clf = svm.SVC(kernel='linear', probability=False, decision_function_shape='ovr', class_weight='balanced')
@@ -295,8 +295,8 @@ def tenprep(dataset, folder_name):
                     tourist_probs.append(-probs[j])
                 else:
                     local_probs.append(probs[j])        
-            pickle.dump([labels, tourist_probs, local_probs, subregion_to_filepaths[key]], open('results/{0}/{1}/{2}_info.pkl'.format(folder_name, 10, key.replace(' ', '_')), 'wb'))
-    subregion_local_svm_loc = 'results/{0}/{1}/subregion_svm.pkl'.format(folder_name, 10)
+            pickle.dump([labels, tourist_probs, local_probs, subregion_to_filepaths[key]], open('results/{0}/{1}/{2}_info.pkl'.format(folder_name, 'geo_lng', key.replace(' ', '_')), 'wb'))
+    subregion_local_svm_loc = 'results/{0}/{1}/subregion_svm.pkl'.format(folder_name, 'geo_lng')
     if not os.path.exists(subregion_local_svm_loc):
         pickle.dump([subregion_to_accuracy, subregion_to_percents_phrase], open(subregion_local_svm_loc, 'wb'))
 
@@ -326,18 +326,18 @@ if __name__ == '__main__':
     elif args.dataset == 'imagenet':
         dataset = datasets.ImagenetDataset(transform_train)
     elif args.dataset == 'yfcc':
-        dataset = datasets.YfccPlacesDataset(transform_train, 6)
+        dataset = datasets.YfccPlacesDataset(transform_train, 'geo_tag')
 
-    if not os.path.exists("results/{}/6.pkl".format(args.folder)):
-        print("Metric 6 was not run for this dataset.")
+    if not os.path.exists("results/{}/geo_tag.pkl".format(args.folder)):
+        print("geo_tag Metric was not run for this dataset.")
     else:
         sixprep(dataset, args.folder)
     
     if args.dataset == 'yfcc':
-        dataset = datasets.YfccPlacesDataset(transform_train, 10)
+        dataset = datasets.YfccPlacesDataset(transform_train, 'geo_lng')
 
-    if not os.path.exists("results/{}/10.pkl".format(args.folder)):
-        print("Metric 10 was not run for this dataset.")
+    if not os.path.exists("results/{}/geo_lng.pkl".format(args.folder)):
+        print("geo_lng Metric was not run for this dataset.")
         exit()
     tenprep(dataset, args.folder)
 

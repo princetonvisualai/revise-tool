@@ -29,9 +29,9 @@ bash download.sh
 
 (1) Make a dataloader structured like the 'Template Dataset' in datasets.py (add to main_measure.py as well), and fill in with the dataset you would like to analyze
 
-(2) Run main_measure to make a pass through the data and collect the metrics for analysis, for example to get measurements (details in section below) att_siz, att_cnt, att_dis, att_clu, obj_scn, geo_lng, att_scn on COCO and have the file be saved in coco_example:
+(2) Run main_measure to make a pass through the data and collect the metrics for analysis, for example to get measurements (details in section below) att_siz, att_cnt, att_dis, att_clu, obj_scn, att_scn on COCO and have the file be saved in coco_example:
 ```
-python3 main_measure.py --measurements 'att_siz' 'att_cnt' 'att_dis' 'att_clu' 'obj_scn' 'geo_lng' 'att_scn' --dataset 'coco' --folder 'coco_example'
+python3 main_measure.py --measurements 'att_siz' 'att_cnt' 'att_dis' 'att_clu' 'obj_scn' 'att_scn' --dataset 'coco' --folder 'coco_example'
 ```
 
 (2.5 optional) 
