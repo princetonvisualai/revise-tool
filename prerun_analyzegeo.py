@@ -122,7 +122,6 @@ def sixprep(dataset, folder_name):
             all_features = project(all_features, num_features)
 
             clf = svm.SVC(kernel='linear', probability=True, decision_function_shape='ovr', class_weight='balanced')
-            clf_random = svm.SVC(kernel='linear', probability=True, decision_function_shape='ovr', class_weight='balanced')
             clf_ovo = svm.SVC(kernel='linear', probability=False, decision_function_shape='ovo', class_weight='balanced')
 
             if len(np.unique(labels)) <= 1:
@@ -169,20 +168,20 @@ def sixprep(dataset, folder_name):
             out_indices = np.argsort(out_probs)
 
             original_labels = np.copy(labels)
+            def subregion_scoring(estimator, X_test, y_test):
+                y_pred = estimator.predict(X_test)
+                y_test[np.where(y_test!=diff_subregion)[0]] = -1
+                y_pred[np.where(y_pred!=diff_subregion)[0]] = -1
+                acc_random = np.mean(y_test == y_pred)
+                return acc_random
 
-            np.random.shuffle(labels)
-            clf_random.fit(all_features, labels)
-
-            random_preds = clf_random.predict(all_features)
-            random_preds[np.where(random_preds!=diff_subregion)[0]] = -1
-            labels[np.where(labels!=diff_subregion)[0]] = -1
-            acc_random = np.mean(labels == random_preds)
-            value = j_to_acc[diff_subregion] / acc_random # ratio between actual accuracy and accuracy of randomly shuffled labels
-            if value <= 1.2 and acc <= .7: # can tune as desired
+            base_acc, rand_acc, p_value = permutation_test_score(clf, all_features, labels, scoring=subregion_scoring, n_permutations=100)
+            value = base_acc/np.mean(rand_acc)
+            if p_value > .05 and value < 1.2: # can tune as desired
                 continue
 
             phrase = dataset.labels_to_names[dataset.categories[tag]]
-            phrase_to_value[phrase] = [value, all_subregions[diff_subregion], acc, acc_random, num_features, j_to_acc]
+            phrase_to_value[phrase] = [value, all_subregions[diff_subregion], acc, p_value, num_features, j_to_acc]
             
             pickle.dump([original_labels, class_probs, class_preds, diff_subregion, all_filepaths], open('results/{0}/{1}/{2}_info.pkl'.format(folder_name, 6, dataset.labels_to_names[dataset.categories[tag]]), 'wb'))
         pickle.dump(phrase_to_value, open('checkpoints/{}/6_b.pkl'.format(folder_name), 'wb'))
@@ -315,7 +314,7 @@ if __name__ == '__main__':
 
 
     if not os.path.exists("checkpoints/{}".format(args.folder)):
-        os.mkdirs("checkpoints/{}".format(args.folder), exist_ok=True)
+        os.makedirs("checkpoints/{}".format(args.folder), exist_ok=True)
 
     if args.dataset == 'openimages':
         dataset = datasets.OpenImagesDataset(transform_train)
