@@ -146,10 +146,10 @@ def obj_cnt(dataloader, args):
     pickle.dump(stats, open("results/{}/obj_cnt.pkl".format(args.folder), "wb"))
 
 def obj_siz(dataloader, args):
-    count_cooccurrence(dataloader, args)
+    obj_cnt(dataloader, args)
 
 def obj_ppl(dataloader, args):
-    count_cooccurrence(dataloader, args)
+    obj_cnt(dataloader, args)
 
 def obj_scn(dataloader, args):
     info = pickle.load(open('util_files/places_scene_info.pkl', 'rb'))
