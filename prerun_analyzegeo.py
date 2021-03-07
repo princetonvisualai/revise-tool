@@ -314,7 +314,7 @@ if __name__ == '__main__':
 
 
     if not os.path.exists("checkpoints/{}".format(args.folder)):
-        os.makedirs("checkpoints/{}".format(args.folder), exist_ok=True)
+        os.mkdirs("checkpoints/{}".format(args.folder), exist_ok=True)
 
     if args.dataset == 'openimages':
         dataset = datasets.OpenImagesDataset(transform_train)
