@@ -67,11 +67,11 @@ def main(dataset, folder_name):
 
     start = time.time()
 
-    if not os.path.exists("results/{0}/4/".format(folder_name)):
-        os.mkdir("results/{0}/4/".format(folder_name))
+    if not os.path.exists("results/{0}/att_clu/".format(folder_name)):
+        os.mkdir("results/{0}/att_clu/".format(folder_name))
     categories = dataset.categories
     names = dataset.labels_to_names
-    stats_dict = pickle.load(open("results/{}/4.pkl".format(folder_name), "rb"))
+    stats_dict = pickle.load(open("results/{}/att_clu.pkl".format(folder_name), "rb"))
     instances = stats_dict['instance']
     scenes = stats_dict['scene']
     scene_filepaths = stats_dict['scene_filepaths']
@@ -93,7 +93,7 @@ def main(dataset, folder_name):
     instance_p_values = []
     scene_p_values = []
 
-    if not os.path.exists("checkpoints/{}/4.pkl".format(folder_name)):
+    if not os.path.exists("checkpoints/{}/att_clu.pkl".format(folder_name)):
         value_to_phrase = {}
         value_to_scenephrase = {}
         for i in range(len(categories)):
@@ -113,7 +113,7 @@ def main(dataset, folder_name):
             ## Uncomment to visualize features of cropped object, saved as a png
             #projection_instances = TSNE().fit_transform(features_instances)
             #plt.scatter(*projection_instances.T, **plot_kwds, c=[COLORS[0] if i < boundary_instances else COLORS[1] for i in range(len(projection_instances))])
-            #plt.savefig("results/{0}/{1}/instances_{2}.png".format(folder_name, 4, i))
+            #plt.savefig("results/{0}/{1}/instances_{2}.png".format(folder_name, att_clu, i))
             #plt.close()
 
             t, p = stats.ttest_ind(instances[i][0], instances[i][1])
@@ -122,7 +122,7 @@ def main(dataset, folder_name):
             ## Uncomment to visualize features of entire scene, saved as a png
             #projection_scenes = TSNE().fit_transform(features_scenes)
             #plt.scatter(*projection_scenes.T, **plot_kwds, c=[COLORS[0] if i < boundary_scenes else COLORS[1] for i in range(len(projection_scenes))])
-            #plt.savefig("results/{0}/{1}/scenes_{2}.png".format(folder_name, 4, i))
+            #plt.savefig("results/{0}/{1}/scenes_{2}.png".format(folder_name, att_clu, i))
             #plt.close()
 
             t, p = stats.ttest_ind(scenes[i][0], scenes[i][1])
@@ -154,7 +154,7 @@ def main(dataset, folder_name):
             a_indices = np.argsort(np.array(a_probs))
             b_indices = np.argsort(np.array(b_probs))
 
-            pickle.dump([a_indices, b_indices, scene_filepaths[i], a_probs, b_probs], open("results/{0}/4/{1}_info.pkl".format(folder_name, names[categories[i]]), "wb"))
+            pickle.dump([a_indices, b_indices, scene_filepaths[i], a_probs, b_probs], open("results/{0}/att_clu/{1}_info.pkl".format(folder_name, names[categories[i]]), "wb"))
             np.random.shuffle(projected_features_scenes)
             clf_random.fit(projected_features_scenes, labels)
             acc_random = clf_random.score(projected_features_scenes, labels)
@@ -181,9 +181,9 @@ def main(dataset, folder_name):
                 _, p = stats.ttest_ind(a, b)
                 if not np.isnan(p):
                     value_to_scenephrase[p] = [names[categories[i]], scene_classes[j], len(a_dists), len(a), len(b_dists), len(b)]
-        pickle.dump([value_to_phrase, value_to_scenephrase], open("checkpoints/{}/4.pkl".format(folder_name), 'wb'))
+        pickle.dump([value_to_phrase, value_to_scenephrase], open("checkpoints/{}/att_clu.pkl".format(folder_name), 'wb'))
     else:
-        value_to_phrase = pickle.load(open("checkpoints/{}/4.pkl".format(folder_name), 'rb'))
+        value_to_phrase = pickle.load(open("checkpoints/{}/att_clu.pkl".format(folder_name), 'rb'))
 
 
 if __name__ == '__main__':
@@ -199,8 +199,8 @@ if __name__ == '__main__':
                 transforms.ToTensor()
                         ])
 
-    if not os.path.exists("results/{}/4.pkl".format(args.folder)):
-        print("Metric 4 was not run for this dataset.")
+    if not os.path.exists("results/{}/att_clu.pkl".format(args.folder)):
+        print("att_clu Metric was not run for this dataset.")
         exit()
 
     if args.dataset == 'openimages':
