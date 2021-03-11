@@ -37,7 +37,7 @@ def country_to_iso3(country):
             iso3 = None
     return iso3
 
-def count_country(dataloader, args):
+def geo_ctr(dataloader, args):
     counts = {}
 
     for i, (data, target) in enumerate(tqdm(dataloader)):
@@ -46,9 +46,9 @@ def count_country(dataloader, args):
             counts[country] = 0
         counts[country] += 1
 
-    pickle.dump(counts, open("results/{}/5.pkl".format(args.folder), "wb"))
+    pickle.dump(counts, open("results/{}/geo_ctr.pkl".format(args.folder), "wb"))
 
-def count_tags(dataloader, args):
+def geo_tag(dataloader, args):
     country_tags = {}
     tag_to_subregion_features = {}
     categories = dataloader.dataset.categories
@@ -93,9 +93,9 @@ def count_tags(dataloader, args):
     info_stats = {}
     info_stats['country_tags'] = country_tags
     info_stats['tag_to_subregion_features'] = tag_to_subregion_features
-    pickle.dump(info_stats, open("results/{}/6.pkl".format(args.folder), "wb"))
+    pickle.dump(info_stats, open("results/{}/geo_tag.pkl".format(args.folder), "wb"))
 
-def count_langs(dataloader, args):
+def geo_lng(dataloader, args):
     mappings = pickle.load(open('country_lang_mappings.pkl', 'rb'))
     iso3_to_lang = mappings['iso3_to_lang']
     # Country to iso3 mappings that are missing
@@ -207,6 +207,6 @@ def count_langs(dataloader, args):
     info['country_with_langs'] = country_with_langs
     info['country_with_imgs'] = country_with_imgs
 
-    pickle.dump(info, open("results/{}/10.pkl".format(args.folder), "wb"))
+    pickle.dump(info, open("results/{}/geo_lng.pkl".format(args.folder), "wb"))
 
 
