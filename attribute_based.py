@@ -121,7 +121,7 @@ def size_and_distance(dataloader, args):
     stats['noface_sizes'] = no_faces
     stats['distances'] = distances
 
-    pickle.dump(stats, open("results/{}/1.pkl".format(args.folder), "wb"))
+    pickle.dump(stats, open("results/{}/att_siz.pkl".format(args.folder), "wb"))
 
 def count_cooccurrence(dataloader, args):
     num_attrs = len(dataloader.dataset.attribute_names)
@@ -150,4 +150,4 @@ def count_cooccurrence(dataloader, args):
                         counts[attribute[0]]["{0}-{1}".format(cat_a, cat_b)] += 1
                     else:
                         counts[attribute[0]]["{0}-{1}".format(cat_b, cat_a)] += 1
-    pickle.dump(counts, open("results/{}/2.pkl".format(args.folder), "wb"))
+    pickle.dump(counts, open("results/{}/att_cnt.pkl".format(args.folder), "wb"))
