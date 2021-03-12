@@ -121,4 +121,33 @@ def size_and_distance(dataloader, args):
     stats['noface_sizes'] = no_faces
     stats['distances'] = distances
 
-    pickle.dump(stats, open("results/{}/1.pkl".format(args.folder), "wb"))
+    pickle.dump(stats, open("results/{}/att_siz.pkl".format(args.folder), "wb"))
+
+def count_cooccurrence(dataloader, args):
+    num_attrs = len(dataloader.dataset.attribute_names)
+
+    counts = [{} for i in range(num_attrs)]
+
+    for i in range(len(dataloader.dataset.categories)):
+        for a in range(num_attrs):
+            counts[a]["{0}-{1}".format(i, i)]= 0
+        for j in range(i+1, len(dataloader.dataset.categories)):
+            for a in range(num_attrs):
+                counts[a]["{0}-{1}".format(i, j)] = 0
+            
+    for i, (data, target) in enumerate(tqdm(dataloader)):
+        attribute = target[1]
+        
+        anns = target[0]
+        if len(attribute) > 1:
+            categories = list(set([ann['label'] for ann in anns]))
+            for a in range(len(categories)):
+                cat_a = dataloader.dataset.categories.index(categories[a])
+                counts[attribute[0]]["{0}-{1}".format(cat_a, cat_a)] += 1
+                for b in range(a+1, len(categories)):
+                    cat_b = dataloader.dataset.categories.index(categories[b])
+                    if cat_a < cat_b:
+                        counts[attribute[0]]["{0}-{1}".format(cat_a, cat_b)] += 1
+                    else:
+                        counts[attribute[0]]["{0}-{1}".format(cat_b, cat_a)] += 1
+    pickle.dump(counts, open("results/{}/att_cnt.pkl".format(args.folder), "wb"))
