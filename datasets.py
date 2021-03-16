@@ -23,6 +23,7 @@ from scipy.special import softmax
 import numpy as np
 from collections import OrderedDict 
 nlp = spacy.load("en_core_web_lg")
+import json
 
 def collate_fn(batch):
     return batch[0]
@@ -919,3 +920,68 @@ class CelebADataset(data.Dataset):
         anns = [image_anns, gender_info, [country], file_path, scene_group]
 
         return image, anns
+
+class CityScapes(data.dataSet):
+
+    def __init__(self, transform): 
+        self.transform = transform
+        self.img_folder = '/Users/home/Desktop/research/data/cityscapes/gtFine_trainvaltest/gtFine/train'
+
+        # directory storing gps information
+        self.gps_folder = '/Users/home/Desktop/research/data/cityscapes/vehicle_trainvaltest/vehicle/train'
+
+        # store all of the city names in array [aachen, bochum, etc]
+        self.city_names = os.listdir(self.gps_folder)
+        self.city_names.remove('.DS_Store')
+        # city_names.remove('zurich')
+
+        # Adds the title of the image as its ID 
+        # (e.g. aachen/aachen_000000_000019_gtFine_color.png = aachen/aachen_000000_000019)
+        self.image_ids = []
+        for city in self.city_names:
+            filename_path = os.path.join(self.gps_folder, city)
+            city_filenames = os.listdir(filename_path)
+            self.image_ids = self.image_ids +  [os.path.join(city, name.split("_vehicle")[0]) for name in city_filenames]
+        print("done with ids")
+
+        # TODO: categories work
+
+    def __getitem__(self, index):
+        image_id = self.image_ids[index]
+        return self.from_path(image_id)
+    
+    def __len__(self):
+        return len(self.image_ids)
+    
+    def from_path(self, file_path):
+        image_id = os.path.join(self.img_folder, "{0}_gtFine_color.png".format(file_path))
+        image = Image.open(image_id).convert("RGB")
+        image_size = list(image.size())[1:]
+
+        country = None
+
+        # for each image, get category information
+        image_anns = []
+
+        category_path = os.path.join(self.img_folder, "{0}_gtFine_polygons.json".format(file_path))
+        category_data = json.load(open(category_path)).get('objects', [])
+
+        
+        for i in range(len(category_data)):
+            label = category_data[i].get('label', None)
+            if label is not None:
+                image_anns.append({'label': label})
+
+        # for each image, get long lat gps information
+        lat_lng = {}
+        json_data = json.load(open(os.path.join(self.gps_folder, "{0}_vehicle.json".format(file_path))))
+        if json_data is not None and "gpsLatitude" in json_data and "gpsLongitude" in json_data:
+            lat_lng['lat'] = json_data["gpsLatitude"]
+            lat_lng['lng'] = json_data["gpsLongitude"]
+
+        anns = [image_anns, None, [country], file_path, None, lat_lng]    
+
+        return image, anns
+
+
+
