@@ -944,6 +944,8 @@ class CityScapes(data.Dataset):
             self.image_ids = self.image_ids +  [os.path.join(city, name.split("_vehicle")[0]) for name in city_filenames]
         print("done with ids")
 
+        with open("/Users/home/Downloads/stanford-nh891yz3147-geojson.json") as f:
+            self.geo_boundaries = json.load(f)
         # TODO: categories work
 
     def __getitem__(self, index):

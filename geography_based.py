@@ -74,11 +74,12 @@ def custom_geo_ctr(dataloader, args):
     
     region_to_id_map = {}
     region_to_cat_map = {}
+    id_to_gps_map = {}
     for i, (data, target) in enumerate(tqdm(dataloader)):
         if i > process_cutoff:
             break
         lat_lng = target[5]
-
+        id_to_gps_map[target[3]] = lat_lng
         # find which region the image was taken from
         region_name = bin_point(lat_lng['lng'], lat_lng['lat'])
 
@@ -109,6 +110,7 @@ def custom_geo_ctr(dataloader, args):
     
     pickle.dump(region_to_id_map, open("results/{}/region_to_id.pkl".format(args.folder), "wb"))
     pickle.dump(region_to_cat_map, open("results/{}/region_to_cat.pkl".format(args.folder), "wb"))
+    pickle.dump(id_to_gps_map, open("results/{}/id_to_gps.pkl".format(args.folder), "wb"))
 
 def geo_tag(dataloader, args):
     country_tags = {}
