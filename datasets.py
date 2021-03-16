@@ -933,7 +933,6 @@ class CityScapes(data.Dataset):
         # store all of the city names in array [aachen, bochum, etc]
         self.city_names = os.listdir(self.gps_folder)
         self.city_names.remove('.DS_Store')
-        # city_names.remove('zurich')
 
         # Adds the title of the image as its ID 
         # (e.g. aachen/aachen_000000_000019_gtFine_color.png = aachen/aachen_000000_000019)
@@ -942,11 +941,52 @@ class CityScapes(data.Dataset):
             filename_path = os.path.join(self.gps_folder, city)
             city_filenames = os.listdir(filename_path)
             self.image_ids = self.image_ids +  [os.path.join(city, name.split("_vehicle")[0]) for name in city_filenames]
-        print("done with ids")
+        print("done with ids (1/2)")
 
         with open("/Users/home/Downloads/stanford-nh891yz3147-geojson.json") as f:
             self.geo_boundaries = json.load(f)
+
         # TODO: categories work
+        lab_arr = ['unlabeled',
+            'ego vehicle',
+            'rectification border',
+            'out of roi',
+            'static',
+            'dynamic',
+            'ground',
+            'road',
+            'sidewalk',
+            'parking',
+            'rail track',
+            'building',
+            'wall',
+            'fence',
+            'guard rail',
+            'bridge',
+            'tunnel',
+            'pole',
+            'polegroup',
+            'traffic light',
+            'traffic sign',
+            'vegetation',
+            'terrain',
+            'sky',
+            'person',
+            'rider',
+            'car',
+            'truck',
+            'bus',
+            'caravan',
+            'trailer',
+            'train',
+            'motorcycle',
+            'bicycle',
+            'license plate']
+        self.labels_to_names = {i : i for i in lab_arr}
+
+        print("done with categories (2/2)")
+
+
 
     def __getitem__(self, index):
         image_id = self.image_ids[index]
