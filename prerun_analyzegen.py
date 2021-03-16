@@ -26,7 +26,7 @@ def main(dataset, folder_name):
     COLORS = sns.color_palette('Set2', 2)
 
     if not os.path.exists("checkpoints/{}".format(folder_name)):
-        os.makedirs("checkpoints/{}".format(folder_name), exist_ok=True)
+        os.mkdirs("checkpoints/{}".format(folder_name), exist_ok=True)
 
     # Projecting a set of features into a lower-dimensional subspace with PCA
     def project(features, dim):

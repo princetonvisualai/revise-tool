@@ -59,7 +59,7 @@ def country_to_iso3(country):
     return iso3
 
 def sixprep(dataset, folder_name):
-    info_stats = pickle.load(open("/n/fs/revise-scr/results/geo_tag.pkl".format(folder_name), "rb")) #20GB
+    info_stats = pickle.load(open("results/{}/results/geo_tag.pkl".format(folder_name), "rb")) #20GB
     country_tags = info_stats['country_tags']
     tag_to_subregion_features = info_stats['tag_to_subregion_features']
     iso3_to_subregion = pickle.load(open('iso3_to_subregion_mappings.pkl', 'rb'))
@@ -314,7 +314,7 @@ if __name__ == '__main__':
 
 
     if not os.path.exists("checkpoints/{}".format(args.folder)):
-        os.makedirs("checkpoints/{}".format(args.folder), exist_ok=True)
+        os.mkdirs("checkpoints/{}".format(args.folder), exist_ok=True)
 
     if args.dataset == 'openimages':
         dataset = datasets.OpenImagesDataset(transform_train)
@@ -327,7 +327,7 @@ if __name__ == '__main__':
     elif args.dataset == 'yfcc':
         dataset = datasets.YfccPlacesDataset(transform_train, 'geo_tag')
 
-    if not os.path.exists("/n/fs/revise-scr/results/{}/geo_tag.pkl".format(args.folder)):
+    if not os.path.exists("results/{}/geo_tag.pkl".format(args.folder)):
         print("geo_tag Metric was not run for this dataset.")
     else:
         sixprep(dataset, args.folder)
