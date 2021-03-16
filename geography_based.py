@@ -13,6 +13,7 @@ import torch
 import pycountry
 import copy
 from tqdm import tqdm
+import json
 
 def country_to_iso3(country):
     missing = {'South+Korea': 'KOR',
@@ -47,6 +48,64 @@ def geo_ctr(dataloader, args):
         counts[country] += 1
 
     pickle.dump(counts, open("results/{}/geo_ctr.pkl".format(args.folder), "wb"))
+
+def custom_geo_ctr(dataloader, args):
+    # TODO: remove process_cutoff once finalized
+    process_cutoff = 100
+
+    # import custom political boundaries, here I am using Germany's
+    # administration region political boundaries
+    with open("/Users/home/Downloads/stanford-nh891yz3147-geojson.json") as f:
+        geo_boundaries = json.load(f)
+    
+    # return name of politcal region that a point falls into (eg. Manhattan)
+    def bin_point(lng, lat):
+        point = Point(lng, lat)
+
+        # check each polygon to see if it contains the point
+        for feature in geo_boundaries['features']:
+            polygon = shape(feature['geometry'])
+            if polygon.contains(point):
+                return feature['properties']['name_1']
+        return None
+    
+    region_to_id_map = {}
+    region_to_cat_map = {}
+    for i, (data, target) in enumerate(tqdm(dataloader)):
+        if i > process_cutoff:
+            break
+        lat_lng = target[5]
+
+        # find which region the image was taken from
+        region_name = bin_point(lat_lng['lng'], lat_lng['lat'])
+
+        # add filepath id to region_to_id_map
+        if region_name is not None:
+            id_list = region_to_id_map.get(region_name, [])
+            id_list.append(target[3])
+            # add filepath id to region_to_id_map
+            region_to_id_map[region_name] = id_list
+
+            # add categories to region_to_categories_map
+            category_counts = region_to_cat_map.get(region_name, {})
+            for lab_dict in target[0]:
+                category_counts[lab_dict['label']] = category_counts.get(lab_dict['label'], 0) + 1
+            region_to_cat_map[region_name] = category_counts
+
+        else:
+            id_list = region_to_id_map.get('na', [])
+            id_list.append(target[3])
+            # add filepath id to region_to_id_map
+            region_to_id_map['na'] = id_list
+
+            # add categories to region_to_categories_map
+            category_counts = region_to_cat_map.get('na', {})
+            for lab_dict in target[0]:
+                category_counts[lab_dict['label']] = category_counts.get(lab_dict['label'], 0) + 1
+            region_to_cat_map['na'] = category_counts
+    
+    pickle.dump(region_to_id_map, open("results/{}/region_to_id.pkl".format(args.folder), "wb"))
+    pickle.dump(region_to_cat_map, open("results/{}/region_to_cat.pkl".format(args.folder), "wb"))
 
 def geo_tag(dataloader, args):
     country_tags = {}
