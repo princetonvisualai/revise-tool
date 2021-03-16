@@ -921,7 +921,7 @@ class CelebADataset(data.Dataset):
 
         return image, anns
 
-class CityScapes(data.dataSet):
+class CityScapes(data.Dataset):
 
     def __init__(self, transform): 
         self.transform = transform
@@ -956,7 +956,7 @@ class CityScapes(data.dataSet):
     def from_path(self, file_path):
         image_id = os.path.join(self.img_folder, "{0}_gtFine_color.png".format(file_path))
         image = Image.open(image_id).convert("RGB")
-        image_size = list(image.size())[1:]
+        # image_size = list(image.size())[1:]
 
         country = None
 

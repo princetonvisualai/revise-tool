@@ -33,7 +33,7 @@ def main():
         'att_cnt': gender_based.att_cnt,
         'att_dis': gender_based.att_dis,
         'att_clu': gender_based.att_clu,
-        'geo_ctr': geography_based.geo_ctr, 
+        'geo_ctr': geography_based.custom_geo_ctr, 
         'geo_tag': geography_based.geo_tag,
         'obj_siz': object_based.obj_siz,
         'obj_ppl': object_based.obj_ppl,
@@ -62,6 +62,8 @@ def main():
         dataset = ImagenetDataset(transform_train)
     elif args.dataset == 'celeba':
         dataset = CelebADataset(transform_train)
+    elif args.dataset == 'cityscapes':
+        dataset = CityScapes(transform_train)
     
     for meas in args.measurements:
         print("Starting measurement {}".format(meas))

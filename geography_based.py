@@ -14,6 +14,9 @@ import pycountry
 import copy
 from tqdm import tqdm
 import json
+from shapely.geometry import Point
+from shapely.geometry import shape 
+from shapely.geometry import Polygon
 
 def country_to_iso3(country):
     missing = {'South+Korea': 'KOR',
