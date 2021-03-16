@@ -126,7 +126,7 @@ def geo_lng(dataloader, args):
     country_with_imgs = {} # for each country, first list is tourist second is local
     lang_counts = {}
 
-    detecter = fasttext.load_model('lid.176.bin')
+    detecter = fasttext.load_model('util_files/lid.176.bin')
     lang_dict = {}
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 

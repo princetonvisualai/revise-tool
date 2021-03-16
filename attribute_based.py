@@ -14,7 +14,7 @@ import boto3
 import imageio
 import botocore
 from PIL import Image
-from cifar_models import resnet110
+from util_files/cifar_models import resnet110
 from tqdm import tqdm
 
 # 0 for aws rekognition, 1 for free cv2
@@ -59,7 +59,7 @@ def size_and_distance(dataloader, args):
         else:
             detect_info = {}
     elif FACE_DETECT == 1:
-        cascPath = "haarcascade_frontalface_default.xml"
+        cascPath = "util_files/haarcascade_frontalface_default.xml"
         faceCascade = cv2.CascadeClassifier(cv2.data.haarcascades + cascPath)
 
     for i, (data, target) in enumerate(tqdm(dataloader)):

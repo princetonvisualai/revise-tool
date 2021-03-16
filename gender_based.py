@@ -14,7 +14,7 @@ import boto3
 import imageio
 import botocore
 from PIL import Image
-from cifar_models import resnet110
+from util_files/cifar_models import resnet110
 from tqdm import tqdm
 
 # 0 for aws rekognition, 1 for free cv2
@@ -56,7 +56,7 @@ def att_siz(dataloader, args):
         else:
             detect_info = {}
     elif FACE_DETECT == 1:
-        cascPath = "haarcascade_frontalface_default.xml"
+        cascPath = "util_files/haarcascade_frontalface_default.xml"
         faceCascade = cv2.CascadeClassifier(cv2.data.haarcascades + cascPath)
 
     for i, (data, target) in enumerate(tqdm(dataloader)):
@@ -185,7 +185,7 @@ def att_clu(dataloader, args):
 
     # Extracts scene features from the entire image
     arch = 'resnet18'
-    model_file = '%s_places365.pth.tar' % arch
+    model_file = 'util_files/%s_places365.pth.tar' % arch
     model = models.__dict__[arch](num_classes=365).to(device)
     checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage)
     state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
@@ -202,7 +202,7 @@ def att_clu(dataloader, args):
     scene_filepaths = [[[], []] for i in range(len(categories))]
 
     # Extracts features of just the cropped object
-    model_file = 'cifar_resnet110.th'
+    model_file = 'util_files/cifar_resnet110.th'
     small_model = resnet110()
     checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage)
     state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
