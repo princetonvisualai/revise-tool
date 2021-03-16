@@ -669,7 +669,7 @@ class ImagenetDataset(data.Dataset):
 
 class YfccPlacesDataset(data.Dataset):
     
-    def __init__(self, transform, metric=0):
+    def __init__(self, transform, metric='obj_cnt'):
         self.transform = transform
         
         self.img_folder = 'Data/YFCC100m/data/images'
@@ -724,11 +724,11 @@ class YfccPlacesDataset(data.Dataset):
         self.group_mapping = None
         self.people_labels = []
 
-        if metric in [0, 6]:
+        if metric in ['obj_cnt', 'geo_tag']:
             self.version = 'intersect' # has tags from cleaned English, and geolocation
-        elif metric in [10]:
+        elif metric in ['geo_lng']:
             self.version = 'alllang' # has tags in any language, and geolocation
-        elif metric in [5]:
+        elif metric in ['geo_ctr']:
             self.version = 'all' # has geolocation
         else:
             raise Exception("Metric can't be run on this dataset")        

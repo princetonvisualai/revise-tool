@@ -29,17 +29,17 @@ bash download.sh
 
 (1) Make a dataloader structured like the 'Template Dataset' in datasets.py (add to main_measure.py as well), and fill in with the dataset you would like to analyze
 
-(2) Run main_measure to make a pass through the data and collect the metrics for analysis, for example to get measurements (details in section below) 1, 2, 3, 4, 9, 10, 11 on COCO and have the file be saved in coco_example:
+(2) Run main_measure to make a pass through the data and collect the metrics for analysis, for example to get measurements (details in section below) att_siz, att_cnt, att_dis, att_clu, obj_scn, att_scn on COCO and have the file be saved in coco_example:
 ```
-python3 main_measure.py --measurements 1 2 3 4 9 10 11 --dataset 'coco' --folder 'coco_example'
+python3 main_measure.py --measurements 'att_siz' 'att_cnt' 'att_dis' 'att_clu' 'obj_scn' 'att_scn' --dataset 'coco' --folder 'coco_example'
 ```
 
 (2.5 optional) 
-To optionally do some of the processing ahead of time so interacting with the notebook can be faster, for the Gender notebook (M4) run
+To optionally do some of the processing ahead of time so interacting with the notebook can be faster, for the Gender notebook (att_clu) run
 ```
 python3 prerun_analyzegen.py --dataset 'coco' --folder 'coco_example'
 ```
-and for the Geography notebook (M6 and M10) run
+and for the Geography notebook (geo_tag and geo_lng) run
 ```
 python3 prerun_analyzegeo.py --dataset 'yfcc' --folder 'yfcc_example'
 ```
@@ -50,47 +50,35 @@ python3 prerun_analyzegeo.py --dataset 'yfcc' --folder 'yfcc_example'
 Measurements that can be run, along with the file and name of the function they are associated with:
 
 ### Object-Based
-(Note: M0, M7, M8 actually all run the same function, so for main_measure.py it's only necessary to run one of these to get all the measurements)
+(Note: obj_cnt, obj_siz, obj_ppl actually all run the same function, so for main_measure.py it's only necessary to run one of these to get all the measurements)
 
-M0: object_based.count_cooccurrence\
-Counts the number of times each instance occurs, coocurrence of instances occurs, and supercateogry occurs
+obj_cnt: Counts the number of times each instance occurs, coocurrence of instances occurs, and supercateogry occurs
 
-M7: object_based.supercategory_size_and_distance\
-Counts the size and distance from center at the supercategory level
+obj_siz: Counts the size and distance from center at the supercategory level
 
-M8: object_based.supercategory_with_people\
-Counts how much supercategories are represented with or without people
+obj_ppl: Counts how much supercategories are represented with or without people
 
-M9: object_based.scene_categorization\
-Counts overall scenes, scene-supercategory cooccurrences, scene-instance cooccurrences, and gets features per scene per supercategory
+obj_scn: Counts overall scenes, scene-supercategory cooccurrences, scene-instance cooccurrences, and gets features per scene per supercategory
 
 ### Gender-Based
 
-M1: gender_based.size_and_distance\
-Gets the size of the person and distance from center, as well as if a face is detected
+att_siz: Gets the size of the person and distance from center, as well as if a face is detected
 
-M2: gender_based.count_cooccurrence\
-Counts how often each gender occurs with an instance and instance pair
+att_cnt: Counts how often each gender occurs with an instance and instance pair
 
-M3: gender_based.distance_for_instance\
-Calculates the distance each gender is from each object
+att_dis: Calculates the distance each gender is from each object
 
-M4: gender_based.cluster_for_instance\
-Gets scene-level and cropped object-level features per object class for each gender
+att_clu: Gets scene-level and cropped object-level features per object class for each gender
 
-M11: gender_based.scenes\
-Counts the types of scenes each gender occurs with
+att_scn: Counts the types of scenes each gender occurs with
 
 ### Geography-Based
 
-M5: geography_based.count_country\
-Counts the number of images from each country
+geo_ctr: Counts the number of images from each country
 
-M6: geography_based.count_tags\
-Counts the number of tags from each country, as well as extracts AlexNet features pretrained on ImageNet for each tag, grouping by subregion
+geo_tag: Counts the number of tags from each country, as well as extracts AlexNet features pretrained on ImageNet for each tag, grouping by subregion
 
-M10: geography_based.count_langs\
-Counts the languages that make up the image tags, and whether or not they are local to the country the image is from. Also extracts image-level features to compare if locals and tourist portray a country differently
+geo_lng: Counts the languages that make up the image tags, and whether or not they are local to the country the image is from. Also extracts image-level features to compare if locals and tourist portray a country differently
 
 ## Potential Environment Issues
 - If FileNotFoundError: [Errno 2] No such file or directory: appears from importing basemap at epsgf = open(os.path.join(pyproj_datadir,'epsg')), change the PROJ_LIB variable as suggested [here](https://stackoverflow.com/questions/58683341/basemap-wont-import-because-epsg-file-or-directory-cant-be-found-macos-ana).
