@@ -46,7 +46,7 @@ def setup_scenemapping(dataset, name):
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
     arch = 'resnet18' # There's other architectures available on https://github.com/CSAILVision/places365
-    model_file = '%s_places365.pth.tar' % arch
+    model_file = 'util_files/%s_places365.pth.tar' % arch
     model = models.__dict__[arch](num_classes=365)
     checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage)
     state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
