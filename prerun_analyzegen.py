@@ -101,7 +101,7 @@ def main(dataset, folder_name):
         value_to_scenephrase = {}
         for i in range(len(categories)):
             # SVM's to classify between an object's features for the genders
-            clf = svm.SVC(kernel='linear', probability=False)
+            clf = svm.SVC(kernel='linear', probability=False, max_iter=5000)
             clf_prob = svm.SVC(kernel='linear', probability=True)
             if len(instances[i][0]) <= 1 or len(instances[i][1]) <= 1 or len(scenes[i][0]) <= 1 or len(scenes[i][1]) <= 1:
                 scene_p_values.append(float('inf'))

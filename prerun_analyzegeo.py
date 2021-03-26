@@ -122,7 +122,7 @@ def sixprep(dataset, folder_name):
             num_features = int(np.sqrt(len(all_features)))
             all_features = project(all_features, num_features)
 
-            clf = svm.SVC(kernel='linear', probability=True, decision_function_shape='ovr', class_weight='balanced')
+            clf = svm.SVC(kernel='linear', probability=True, decision_function_shape='ovr', class_weight='balanced', max_iter=5000)
             clf_ovo = svm.SVC(kernel='linear', probability=False, decision_function_shape='ovo', class_weight='balanced')
 
             if len(np.unique(labels)) <= 1:
