@@ -3,12 +3,10 @@ import torchvision.transforms as transforms
 import pycountry
 from scipy import stats
 from sklearn import svm
-import time
 import pickle
 import os
 import random
 import matplotlib.pyplot as plt
-import time
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
@@ -68,7 +66,8 @@ def main(dataset, folder_name):
                 iso3 = None
         return iso3
 
-    start = time.time()
+    import warnings
+    warnings.filterwarnings("ignore")
 
     if not os.path.exists("results/{0}/att_clu/".format(folder_name)):
         os.mkdir("results/{0}/att_clu/".format(folder_name))
@@ -101,7 +100,7 @@ def main(dataset, folder_name):
         value_to_scenephrase = {}
         for i in range(len(categories)):
             # SVM's to classify between an object's features for the genders
-            clf = svm.SVC(kernel='linear', probability=False)
+            clf = svm.SVC(kernel='linear', probability=False, max_iter=5000)
             clf_prob = svm.SVC(kernel='linear', probability=True)
             if len(instances[i][0]) <= 1 or len(instances[i][1]) <= 1 or len(scenes[i][0]) <= 1 or len(scenes[i][1]) <= 1:
                 scene_p_values.append(float('inf'))
