@@ -38,7 +38,7 @@ def detect_face(filepath, info, client):
     return info
 
 #Note: attribute possible values and names are passed in with args: --attribute_values '2' --attribute_names 'male female'
-def size_and_distance(dataloader, args):
+def att_siz(dataloader, args):
     num_attrs = len(dataloader.dataset.attribute_names)
 
     sizes = [[] for i in range(num_attrs)]
@@ -123,7 +123,7 @@ def size_and_distance(dataloader, args):
 
     pickle.dump(stats, open("results/{}/att_siz.pkl".format(args.folder), "wb"))
 
-def count_cooccurrence(dataloader, args):
+def att_cnt(dataloader, args):
     num_attrs = len(dataloader.dataset.attribute_names)
 
     counts = [{} for i in range(num_attrs)]
@@ -151,3 +151,24 @@ def count_cooccurrence(dataloader, args):
                     else:
                         counts[attribute[0]]["{0}-{1}".format(cat_b, cat_a)] += 1
     pickle.dump(counts, open("results/{}/att_cnt.pkl".format(args.folder), "wb"))
+
+def att_scn(dataloader, args):
+    num_attrs = len(dataloader.dataset.attribute_names)
+    info = pickle.load(open('util_files/places_scene_info.pkl', 'rb'))
+    idx_to_scene = info['idx_to_scene']
+    idx_to_scenegroup = info['idx_to_scenegroup']
+    sceneidx_to_scenegroupidx = info['sceneidx_to_scenegroupidx']
+
+    scenes_per = [[0 for a in range(num_attrs)] for i in range(len(idx_to_scenegroup))]
+    print(len(scenes_per[0]))
+    for i, (data, target) in enumerate(tqdm(dataloader)):
+        attribute = target[1]
+        anns = target[0]
+        top_scene = target[4]
+        if len(attribute) > 1:
+            for scene in top_scene:
+                scenes_per[scene][attribute[0]] += 1
+
+    info_stats = {}
+    info_stats['scenes_per'] = scenes_per
+    pickle.dump(info_stats, open('results/{}/att_scn.pkl'.format(args.folder), 'wb'))
