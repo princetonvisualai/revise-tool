@@ -96,6 +96,9 @@ def sixprep(dataset, folder_name):
     else:
         pvalues_under, pvalues_over = pickle.load(open('checkpoints/{}/geo_tag_a.pkl'.format(folder_name), 'rb'))
 
+    import warnings
+    warnings.filterwarnings("ignore")
+
     if not os.path.exists('checkpoints/{}/geo_tag_b.pkl'.format(folder_name)):
         phrase_to_value = {}
         ## Look at appearance differences in how a tag is represented across subregions

@@ -3,12 +3,10 @@ import torchvision.transforms as transforms
 import pycountry
 from scipy import stats
 from sklearn import svm
-import time
 import pickle
 import os
 import random
 import matplotlib.pyplot as plt
-import time
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
@@ -68,7 +66,8 @@ def main(dataset, folder_name):
                 iso3 = None
         return iso3
 
-    start = time.time()
+    import warnings
+    warnings.filterwarnings("ignore")
 
     if not os.path.exists("results/{0}/att_clu/".format(folder_name)):
         os.mkdir("results/{0}/att_clu/".format(folder_name))
