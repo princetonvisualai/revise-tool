@@ -57,7 +57,10 @@ def att_siz(dataloader, args):
             detect_info = {}
     elif FACE_DETECT == 1:
         cascPath = "util_files/haarcascade_frontalface_default.xml"
-        faceCascade = cv2.CascadeClassifier(cv2.data.haarcascades + cascPath)
+        try:
+            faceCascade = cv2.CascadeClassifier(cv2.data.haarcascades + cascPath)
+        except AttributeError:
+            faceCascade = cv2.CascadeClassifier(cascPath)
 
     for i, (data, target) in enumerate(tqdm(dataloader)):
         gender = target[1]
