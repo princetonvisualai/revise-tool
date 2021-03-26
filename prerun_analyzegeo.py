@@ -59,7 +59,7 @@ def country_to_iso3(country):
     return iso3
 
 def sixprep(dataset, folder_name):
-    info_stats = pickle.load(open("results/{}/results/geo_tag.pkl".format(folder_name), "rb")) #20GB
+    info_stats = pickle.load(open("results/{}/geo_tag.pkl".format(folder_name), "rb")) #20GB
     country_tags = info_stats['country_tags']
     tag_to_subregion_features = info_stats['tag_to_subregion_features']
     iso3_to_subregion = pickle.load(open('iso3_to_subregion_mappings.pkl', 'rb'))
