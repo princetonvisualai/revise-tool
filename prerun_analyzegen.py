@@ -3,12 +3,10 @@ import torchvision.transforms as transforms
 import pycountry
 from scipy import stats
 from sklearn import svm
-import time
 import pickle
 import os
 import random
 import matplotlib.pyplot as plt
-import time
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
@@ -18,6 +16,9 @@ import copy
 import argparse
 from sklearn.manifold import TSNE
 import seaborn as sns
+from sklearn.model_selection import permutation_test_score
+import warnings
+warnings.filterwarnings("ignore")
 
 def main(dataset, folder_name):
     COLORS = sns.color_palette('Set2', 2)
@@ -65,7 +66,8 @@ def main(dataset, folder_name):
                 iso3 = None
         return iso3
 
-    start = time.time()
+    import warnings
+    warnings.filterwarnings("ignore")
 
     if not os.path.exists("results/{0}/att_clu/".format(folder_name)):
         os.mkdir("results/{0}/att_clu/".format(folder_name))
@@ -98,10 +100,9 @@ def main(dataset, folder_name):
         value_to_scenephrase = {}
         for i in range(len(categories)):
             # SVM's to classify between an object's features for the genders
-            clf = svm.SVC(kernel='linear', probability=False)
+            clf = svm.SVC(kernel='linear', probability=False, max_iter=5000)
             clf_prob = svm.SVC(kernel='linear', probability=True)
-            clf_random = svm.SVC(kernel='linear', probability=False)
-            if len(instances[i][0]) < 1 or len(instances[i][1]) < 1 or len(scenes[i][0]) < 1 or len(scenes[i][1]) < 1:
+            if len(instances[i][0]) <= 1 or len(instances[i][1]) <= 1 or len(scenes[i][0]) <= 1 or len(scenes[i][1]) <= 1:
                 scene_p_values.append(float('inf'))
                 instance_p_values.append(float('inf'))
                 continue
@@ -131,7 +132,7 @@ def main(dataset, folder_name):
 
             labels = np.zeros(len(features_scenes))
             labels[len(scenes[i][0]):] = 1
-            projected_features_scenes = project(features_scenes, num_features)
+            projected_features_scenes = StandardScaler().fit_transform(project(features_scenes, num_features))
             clf.fit(projected_features_scenes, labels)
             clf_prob.fit(projected_features_scenes, labels)
             acc = clf.score(projected_features_scenes, labels)
@@ -155,20 +156,15 @@ def main(dataset, folder_name):
             b_indices = np.argsort(np.array(b_probs))
 
             pickle.dump([a_indices, b_indices, scene_filepaths[i], a_probs, b_probs], open("results/{0}/att_clu/{1}_info.pkl".format(folder_name, names[categories[i]]), "wb"))
-            np.random.shuffle(projected_features_scenes)
-            clf_random.fit(projected_features_scenes, labels)
-            acc_random = clf_random.score(projected_features_scenes, labels)
-            value = acc / acc_random
 
-            if value <= 1.2 and acc <= .7 and len(labels) < 25: # can tune as desired
+            base_acc, rand_acc, p_value = permutation_test_score(clf, projected_features_scenes, labels, scoring="accuracy", n_permutations=100)
+            ratio = base_acc/np.mean(rand_acc)
+
+            if p_value > 0.05 and ratio <= 1.2: # can tune as desired
                 continue
 
             amount = len(features_instances)
-            right_labels = np.zeros(amount)[:int(acc*amount)] = 1
-            wrong_labels = np.zeros(amount)[:int(acc_random*amount)] = 1
-            t, p = stats.ttest_ind(right_labels, wrong_labels)
-
-            phrase = [acc/acc_random, names[categories[i]], acc, len(features_instances), acc_random, num_features]
+            phrase = [ratio, names[categories[i]], acc, p_value, len(features_instances), num_features]
             value_to_phrase[i] = phrase
 
             for j in range(len(scene_classes)):

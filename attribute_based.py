@@ -151,3 +151,73 @@ def count_cooccurrence(dataloader, args):
                     else:
                         counts[attribute[0]]["{0}-{1}".format(cat_b, cat_a)] += 1
     pickle.dump(counts, open("results/{}/att_cnt.pkl".format(args.folder), "wb"))
+
+def att_clu(dataloader, args):
+    use_cuda = not args.ngpu and torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
+
+    # Extracts scene features from the entire image
+    arch = 'resnet18'
+    model_file = '%s_places365.pth.tar' % arch
+    model = models.__dict__[arch](num_classes=365).to(device)
+    checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage)
+    state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+    model.load_state_dict(state_dict)
+    model.eval()
+
+    scene_classifier = model.fc
+    new_classifier = nn.Sequential()
+    model.fc = new_classifier
+
+    categories = dataloader.dataset.categories
+    attr_names = dataloader.dataset.attribute_names
+    num_attrs = len(attr_names)
+    scene_features = [[[] for j in range(num_attrs)] for i in range(len(categories))]
+    instance_features = [[[]  for j in range(num_attrs)] for i in range(len(categories))]
+    scene_filepaths = [[[] for j in range(num_attrs)] for i in range(len(categories))]
+
+    # Extracts features of just the cropped object
+    model_file = 'cifar_resnet110.th'
+    small_model = resnet110()
+    checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage)
+    state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+    small_model.load_state_dict(state_dict)
+    small_model.to(device)
+    small_model.eval()
+    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+
+    for i, (data, target) in enumerate(tqdm(dataloader)):
+        attr = target[1]
+        anns = target[0]
+        if len(attr) > 1:
+            data.to(device)
+            data = normalize(data)
+            big_data = F.interpolate(data.unsqueeze(0), size=224, mode='bilinear').to(device)
+            this_features = model.forward(big_data)
+            logit = scene_classifier.forward(this_features)
+            h_x = F.softmax(logit, 1).data.squeeze()
+            probs, idx = h_x.sort(0, True)
+            pred = idx[0]
+
+            size = list(data.size())[1:]
+            scene_added = []
+
+            for ann in anns:
+                index = categories.index(ann['label'])
+                bbox = np.array([ann['bbox'][0]*size[1], ann['bbox'][1]*size[1], ann['bbox'][2]*size[0], ann['bbox'][3]*size[0]]).astype(int)
+                instance = data[:, bbox[2]:bbox[3], bbox[0]:bbox[1]]
+                if 0 in list(instance.size()):
+                    continue
+                small_data = F.interpolate(instance.unsqueeze(0), size=32, mode='bilinear').to(device)
+                this_small_features = small_model.features(small_data)
+                if len(scene_features[index][attr[0]]) < 500 and index not in scene_added:
+                    scene_added.append(index)
+                    scene_features[index][attr[0]].extend(this_features.data.cpu().numpy())
+                    scene_filepaths[index][attr[0]].append((target[3], pred))
+                if len(instance_features[index][attr[0]]) < 500:
+                    instance_features[index][attr[0]].extend(this_small_features.data.cpu().numpy())
+    stats = {}
+    stats['instance'] = instance_features
+    stats['scene'] = scene_features
+    stats['scene_filepaths'] = scene_filepaths
+    pickle.dump(stats, open("results/{}/att_clu.pkl".format(args.folder), "wb"))
