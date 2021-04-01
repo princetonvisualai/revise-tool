@@ -221,3 +221,24 @@ def att_clu(dataloader, args):
     stats['scene'] = scene_features
     stats['scene_filepaths'] = scene_filepaths
     pickle.dump(stats, open("results/{}/att_clu.pkl".format(args.folder), "wb"))
+
+    def att_scn(dataloader, args):
+    num_attrs = len(dataloader.dataset.attribute_names)
+    info = pickle.load(open('util_files/places_scene_info.pkl', 'rb'))
+    idx_to_scene = info['idx_to_scene']
+    idx_to_scenegroup = info['idx_to_scenegroup']
+    sceneidx_to_scenegroupidx = info['sceneidx_to_scenegroupidx']
+
+    scenes_per = [[0 for a in range(num_attrs)] for i in range(len(idx_to_scenegroup))]
+    print(len(scenes_per[0]))
+    for i, (data, target) in enumerate(tqdm(dataloader)):
+        attribute = target[1]
+        anns = target[0]
+        top_scene = target[4]
+        if len(attribute) > 1:
+            for scene in top_scene:
+                scenes_per[scene][attribute[0]] += 1
+
+    info_stats = {}
+    info_stats['scenes_per'] = scenes_per
+    pickle.dump(info_stats, open('results/{}/att_scn.pkl'.format(args.folder), 'wb'))
