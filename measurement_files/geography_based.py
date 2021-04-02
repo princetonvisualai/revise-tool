@@ -67,8 +67,7 @@ def geo_tag(dataloader, args):
     for subregion in unique_subregions:
         subregion_features[subregion] = []
     for cat in range(len(categories)):
-        tag_to_subregion_features[cat]
-        = copy.deepcopy(subregion_features)
+        tag_to_subregion_features[cat] = copy.deepcopy(subregion_features)
     for i, (data, target) in enumerate(tqdm(dataloader)):
         if data is None:
             continue
