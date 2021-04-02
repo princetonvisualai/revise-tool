@@ -12,7 +12,7 @@ import os
 import numpy as np
 import sys
 import copy
-from cifar_models import resnet110
+from util_files.cifar_models import resnet110
 from tqdm import tqdm
 
 # https://www.pyimagesearch.com/2016/11/07/intersection-over-union-iou-for-object-detection/
@@ -177,7 +177,7 @@ def obj_scn(dataloader, args):
     use_cuda = not args.ngpu and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
     arch = 'resnet18' # There's other architectures available on https://github.com/CSAILVision/places365
-    model_file = '%s_places365.pth.tar' % arch
+    model_file = 'util_files/%s_places365.pth.tar' % arch
     model = models.__dict__[arch](num_classes=365)
     checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage)
     state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
@@ -192,7 +192,7 @@ def obj_scn(dataloader, args):
         supercat_to_scenes_to_features[i] = copy.deepcopy(scenes_to_features)
 
     # To get features from cropped object instance
-    model_file = 'cifar_resnet110.th'
+    model_file = 'util_files/cifar_resnet110.th'
     small_model = resnet110()
     checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage)
     state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}

@@ -78,7 +78,7 @@ def main(dataset, folder_name):
     scenes = stats_dict['scene']
     scene_filepaths = stats_dict['scene_filepaths']
 
-    file_name = 'categories_places365.txt'
+    file_name = 'util_files/categories_places365.txt'
     if not os.access(file_name, os.W_OK):
         synset_url = 'https://raw.githubusercontent.com/csailvision/places365/master/categories_places365.txt'
         os.system('wget ' + synset_url)

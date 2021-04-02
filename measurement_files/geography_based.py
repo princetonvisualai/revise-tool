@@ -67,7 +67,8 @@ def geo_tag(dataloader, args):
     for subregion in unique_subregions:
         subregion_features[subregion] = []
     for cat in range(len(categories)):
-        tag_to_subregion_features[cat] = copy.deepcopy(subregion_features)
+        tag_to_subregion_features[cat]
+        = copy.deepcopy(subregion_features)
     for i, (data, target) in enumerate(tqdm(dataloader)):
         if data is None:
             continue
@@ -96,7 +97,7 @@ def geo_tag(dataloader, args):
     pickle.dump(info_stats, open("results/{}/geo_tag.pkl".format(args.folder), "wb"))
 
 def geo_lng(dataloader, args):
-    mappings = pickle.load(open('country_lang_mappings.pkl', 'rb'))
+    mappings = pickle.load(open('util_files/country_lang_mappings.pkl', 'rb'))
     iso3_to_lang = mappings['iso3_to_lang']
     # Country to iso3 mappings that are missing
     missing = {'South+Korea': 'KOR',
@@ -126,7 +127,7 @@ def geo_lng(dataloader, args):
     country_with_imgs = {} # for each country, first list is tourist second is local
     lang_counts = {}
 
-    detecter = fasttext.load_model('lid.176.bin')
+    detecter = fasttext.load_model('util_files/lid.176.bin')
     lang_dict = {}
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
