@@ -1,4 +1,6 @@
 import argparse
+import sys
+sys.path.append('.')
 from datasets import *
 import pickle
 import torchvision.transforms as transforms
@@ -10,7 +12,6 @@ from torch.nn import functional as F
 import torch
 import os
 import numpy as np
-import sys
 import copy
 from util_files.cifar_models import resnet110
 from tqdm import tqdm
