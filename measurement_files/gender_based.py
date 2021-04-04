@@ -1,4 +1,6 @@
 import argparse
+import sys
+sys.path.append('.')
 from datasets import *
 import pickle
 import torchvision.transforms as transforms
@@ -8,7 +10,6 @@ import torch.nn.functional as F
 import numpy as np
 import torch.nn as nn
 import os
-import sys
 import cv2
 import boto3
 import imageio
