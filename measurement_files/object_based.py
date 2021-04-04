@@ -1,4 +1,6 @@
 import argparse
+import sys
+sys.path.append('.') 
 from datasets import *
 import pickle
 import torchvision.transforms as transforms
@@ -10,7 +12,6 @@ from torch.nn import functional as F
 import torch
 import os
 import numpy as np
-import sys
 import copy
 from util_files.cifar_models import resnet110
 from tqdm import tqdm
@@ -143,7 +144,8 @@ def obj_cnt(dataloader, args):
     stats['with_people_instances'] = with_people_instances
     stats['filepaths'] = filepaths
     stats['instances_size'] = instances_size
-    pickle.dump(stats, open("results/{}/obj_cnt.pkl".format(args.folder), "wb"))
+    dump_file = os.path.join(os.getcwd(), "results/{}/obj_cnt.pkl".format(args.folder))
+    pickle.dump(stats, open(dump_file, "wb"))
 
 def obj_siz(dataloader, args):
     obj_cnt(dataloader, args)
@@ -152,7 +154,8 @@ def obj_ppl(dataloader, args):
     obj_cnt(dataloader, args)
 
 def obj_scn(dataloader, args):
-    info = pickle.load(open('util_files/places_scene_info.pkl', 'rb'))
+    load_file = os.path.join(os.getcwd(), 'util_files/places_scene_info.pkl')
+    info = pickle.load(open(load_file, 'rb'))
     idx_to_scene = info['idx_to_scene']
     idx_to_scenegroup = info['idx_to_scenegroup']
     sceneidx_to_scenegroupidx = info['sceneidx_to_scenegroupidx']
@@ -177,7 +180,7 @@ def obj_scn(dataloader, args):
     use_cuda = not args.ngpu and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
     arch = 'resnet18' # There's other architectures available on https://github.com/CSAILVision/places365
-    model_file = 'util_files/%s_places365.pth.tar' % arch
+    model_file = os.path.join(os.getcwd(), 'util_files/%s_places365.pth.tar' % arch)
     model = models.__dict__[arch](num_classes=365)
     checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage)
     state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
@@ -192,7 +195,7 @@ def obj_scn(dataloader, args):
         supercat_to_scenes_to_features[i] = copy.deepcopy(scenes_to_features)
 
     # To get features from cropped object instance
-    model_file = 'util_files/cifar_resnet110.th'
+    model_file = os.path.join(os.getcwd(), 'util_files/cifar_resnet110.th')
     small_model = resnet110()
     checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage)
     state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
@@ -254,7 +257,8 @@ def obj_scn(dataloader, args):
     info['scene_supercategory'] = scene_supercategory
     info['scene_instance'] = scene_instance
     info['supercat_to_scenes_to_features'] = supercat_to_scenes_to_features
-    pickle.dump(info, open('results/{}/obj_scn.pkl'.format(args.folder), 'wb'))
+    dump_file = os.path.join(os.getcwd(), 'results/{}/obj_scn.pkl'.format(args.folder))
+    pickle.dump(info, open(dump_file, 'wb'))
 
 
 

@@ -45,14 +45,15 @@ def geo_ctr(dataloader, args):
         if country not in counts.keys():
             counts[country] = 0
         counts[country] += 1
-
-    pickle.dump(counts, open("results/{}/geo_ctr.pkl".format(args.folder), "wb"))
+    dump_file = os.path.join(os.getcwd(), "results/{}/geo_ctr.pkl".format(args.folder))
+    pickle.dump(counts, open(dump_file, "wb"))
 
 def geo_tag(dataloader, args):
     country_tags = {}
     tag_to_subregion_features = {}
     categories = dataloader.dataset.categories
-    iso3_to_subregion = pickle.load(open('util_files/iso3_to_subregion_mappings.pkl', 'rb'))
+    load_file = os.path.join(os.getcwd(), 'util_files/iso3_to_subregion_mappings.pkl')
+    iso3_to_subregion = pickle.load(open(load_file, 'rb'))
     unique_subregions = set(list(iso3_to_subregion.values()))
 
     # Extracts features from model pretrained on ImageNet
@@ -93,10 +94,12 @@ def geo_tag(dataloader, args):
     info_stats = {}
     info_stats['country_tags'] = country_tags
     info_stats['tag_to_subregion_features'] = tag_to_subregion_features
-    pickle.dump(info_stats, open("results/{}/geo_tag.pkl".format(args.folder), "wb"))
+    dump_file = os.path.join(os.getcwd(), "results/{}/geo_tag.pkl".format(args.folder))
+    pickle.dump(info_stats, open(dump_file, "wb"))
 
 def geo_lng(dataloader, args):
-    mappings = pickle.load(open('util_files/country_lang_mappings.pkl', 'rb'))
+    load_file = os.path.join(os.getcwd(), 'util_files/country_lang_mappings.pkl')
+    mappings = pickle.load(open(load_file, 'rb'))
     iso3_to_lang = mappings['iso3_to_lang']
     # Country to iso3 mappings that are missing
     missing = {'South+Korea': 'KOR',
@@ -126,7 +129,8 @@ def geo_lng(dataloader, args):
     country_with_imgs = {} # for each country, first list is tourist second is local
     lang_counts = {}
 
-    detecter = fasttext.load_model('util_files/lid.176.bin')
+    load_file = os.path.join(os.getcwd(), 'util_files/lid.176.bin')
+    detecter = fasttext.load_model(load_file)
     lang_dict = {}
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
@@ -207,6 +211,7 @@ def geo_lng(dataloader, args):
     info['country_with_langs'] = country_with_langs
     info['country_with_imgs'] = country_with_imgs
 
-    pickle.dump(info, open("results/{}/geo_lng.pkl".format(args.folder), "wb"))
+    load_file = os.path.join(os.getcwd(), "results/{}/geo_lng.pkl".format(args.folder))
+    pickle.dump(info, open(load_file, "wb"))
 
 

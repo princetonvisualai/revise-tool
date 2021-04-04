@@ -1,3 +1,5 @@
+import sys
+sys.path.append('.')
 import datasets
 import torchvision.transforms as transforms
 import pycountry
@@ -23,8 +25,9 @@ warnings.filterwarnings("ignore")
 def main(dataset, folder_name):
     COLORS = sns.color_palette('Set2', 2)
 
-    if not os.path.exists("checkpoints/{}".format(folder_name)):
-        os.mkdirs("checkpoints/{}".format(folder_name), exist_ok=True)
+    load_file = os.path.join(os.getcwd(), "checkpoints/{}".format(folder_name))
+    if not os.path.exists(load_file):
+        os.mkdirs(load_file, exist_ok=True)
 
     # Projecting a set of features into a lower-dimensional subspace with PCA
     def project(features, dim):
@@ -69,19 +72,22 @@ def main(dataset, folder_name):
     import warnings
     warnings.filterwarnings("ignore")
 
-    if not os.path.exists("results/{0}/att_clu/".format(folder_name)):
-        os.mkdir("results/{0}/att_clu/".format(folder_name))
+    load_file = os.path.join(os.getcwd(), "results/{0}/att_clu/".format(folder_name))
+    if not os.path.exists(load_file):
+        os.mkdir(load_file)
     categories = dataset.categories
     names = dataset.labels_to_names
-    stats_dict = pickle.load(open("results/{}/att_clu.pkl".format(folder_name), "rb"))
+    load_file = os.path.join(os.getcwd(), "results/{}/att_clu.pkl".format(folder_name))
+    stats_dict = pickle.load(open(load_file, "rb"))
     instances = stats_dict['instance']
     scenes = stats_dict['scene']
     scene_filepaths = stats_dict['scene_filepaths']
 
-    file_name = 'util_files/categories_places365.txt'
+    file_name = os.path.join(os.getcwd(), 'util_files/categories_places365.txt')
     if not os.access(file_name, os.W_OK):
         synset_url = 'https://raw.githubusercontent.com/csailvision/places365/master/categories_places365.txt'
         os.system('wget ' + synset_url)
+        os.rename('categories_places365.txt', file_name)
     classes = list()
     with open(file_name) as class_file:
         for line in class_file:
@@ -94,8 +100,9 @@ def main(dataset, folder_name):
 
     instance_p_values = []
     scene_p_values = []
-
-    if not os.path.exists("checkpoints/{}/att_clu.pkl".format(folder_name)):
+    
+    load_file = os.path.join(os.getcwd(), "checkpoints/{}/att_clu.pkl".format(folder_name))
+    if not os.path.exists(load_file):
         value_to_phrase = {}
         value_to_scenephrase = {}
         for i in range(len(categories)):
@@ -155,7 +162,8 @@ def main(dataset, folder_name):
             a_indices = np.argsort(np.array(a_probs))
             b_indices = np.argsort(np.array(b_probs))
 
-            pickle.dump([a_indices, b_indices, scene_filepaths[i], a_probs, b_probs], open("results/{0}/att_clu/{1}_info.pkl".format(folder_name, names[categories[i]]), "wb"))
+            dump_file = os.path.join(os.getcwd(), "results/{0}/att_clu/{1}_info.pkl".format(folder_name, names[categories[i]]))
+            pickle.dump([a_indices, b_indices, scene_filepaths[i], a_probs, b_probs], open(dump_file, "wb"))
 
             base_acc, rand_acc, p_value = permutation_test_score(clf, projected_features_scenes, labels, scoring="accuracy", n_permutations=100)
             ratio = base_acc/np.mean(rand_acc)
@@ -177,9 +185,11 @@ def main(dataset, folder_name):
                 _, p = stats.ttest_ind(a, b)
                 if not np.isnan(p):
                     value_to_scenephrase[p] = [names[categories[i]], scene_classes[j], len(a_dists), len(a), len(b_dists), len(b)]
-        pickle.dump([value_to_phrase, value_to_scenephrase], open("checkpoints/{}/att_clu.pkl".format(folder_name), 'wb'))
+        dump_file = os.path.join(os.getcwd(), "checkpoints/{}/att_clu.pkl".format(folder_name))
+        pickle.dump([value_to_phrase, value_to_scenephrase], open(dump_file, 'wb'))
     else:
-        value_to_phrase = pickle.load(open("checkpoints/{}/att_clu.pkl".format(folder_name), 'rb'))
+        load_file = os.path.join(os.getcwd(), "checkpoints/{}/att_clu.pkl".format(folder_name))
+        value_to_phrase = pickle.load(open(load_file, 'rb'))
 
 
 if __name__ == '__main__':
@@ -195,7 +205,9 @@ if __name__ == '__main__':
                 transforms.ToTensor()
                         ])
 
-    if not os.path.exists("results/{}/att_clu.pkl".format(args.folder)):
+    load_file = os.path.join(os.getcwd(), "results/{}/att_clu.pkl".format(args.folder))
+    print(load_file)
+    if not os.path.exists(load_file):
         print("att_clu Metric was not run for this dataset.")
         exit()
 

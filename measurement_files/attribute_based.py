@@ -1,4 +1,6 @@
 import argparse
+import sys
+sys.path.append(".")
 from datasets import *
 import pickle
 import torchvision.transforms as transforms
@@ -8,7 +10,6 @@ import torch.nn.functional as F
 import numpy as np
 import torch.nn as nn
 import os
-import sys
 import cv2
 import boto3
 import imageio
@@ -46,8 +47,9 @@ def size_and_distance(dataloader, args):
     no_faces = [[] for i in range(num_attrs)]
     distances = [[] for i in range(num_attrs)]
     img_center = np.array([.5, .5])
-
-    info = pickle.load(open('util_files/places_scene_info.pkl', 'rb'))
+    
+    load_file = os.path.join(os.getcwd(), 'util_files/places_scene_info.pkl')
+    info = pickle.load(open(load_file, 'rb'))
     idx_to_scene = info['idx_to_scene']
     idx_to_scenegroup = info['idx_to_scenegroup']
     sceneidx_to_scenegroupidx = info['sceneidx_to_scenegroupidx']
@@ -59,7 +61,7 @@ def size_and_distance(dataloader, args):
         else:
             detect_info = {}
     elif FACE_DETECT == 1:
-        cascPath = "util_files/haarcascade_frontalface_default.xml"
+        cascPath = os.path.join(os.getcwd(), "util_files/haarcascade_frontalface_default.xml")
         faceCascade = cv2.CascadeClassifier(cv2.data.haarcascades + cascPath)
 
     for i, (data, target) in enumerate(tqdm(dataloader)):
@@ -121,7 +123,8 @@ def size_and_distance(dataloader, args):
     stats['noface_sizes'] = no_faces
     stats['distances'] = distances
 
-    pickle.dump(stats, open("results/{}/att_siz.pkl".format(args.folder), "wb"))
+    dump_file = os.path.join(os.getcwd(), "results/{}/att_siz.pkl".format(args.folder))
+    pickle.dump(stats, open(dump_file, "wb"))
 
 def count_cooccurrence(dataloader, args):
     num_attrs = len(dataloader.dataset.attribute_names)
@@ -150,7 +153,8 @@ def count_cooccurrence(dataloader, args):
                         counts[attribute[0]]["{0}-{1}".format(cat_a, cat_b)] += 1
                     else:
                         counts[attribute[0]]["{0}-{1}".format(cat_b, cat_a)] += 1
-    pickle.dump(counts, open("results/{}/att_cnt.pkl".format(args.folder), "wb"))
+    dump_file = os.path.join(os.getcwd(), "results/{}/att_cnt.pkl".format(args.folder))
+    pickle.dump(counts, open(dump_file, "wb"))
 
 def att_clu(dataloader, args):
     use_cuda = not args.ngpu and torch.cuda.is_available()
@@ -158,7 +162,7 @@ def att_clu(dataloader, args):
 
     # Extracts scene features from the entire image
     arch = 'resnet18'
-    model_file = '%s_places365.pth.tar' % arch
+    model_file = os.path.join(os.getcwd(), 'util_files/%s_places365.pth.tar' % arch)
     model = models.__dict__[arch](num_classes=365).to(device)
     checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage)
     state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
@@ -177,7 +181,7 @@ def att_clu(dataloader, args):
     scene_filepaths = [[[] for j in range(num_attrs)] for i in range(len(categories))]
 
     # Extracts features of just the cropped object
-    model_file = 'cifar_resnet110.th'
+    model_file = os.join.path(os.getcwd(), 'util_files/cifar_resnet110.th')
     small_model = resnet110()
     checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage)
     state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
@@ -220,11 +224,13 @@ def att_clu(dataloader, args):
     stats['instance'] = instance_features
     stats['scene'] = scene_features
     stats['scene_filepaths'] = scene_filepaths
-    pickle.dump(stats, open("results/{}/att_clu.pkl".format(args.folder), "wb"))
+    dump_file = os.path.join(os.getcwd(), "results/{}/att_clu.pkl".format(args.folder))
+    pickle.dump(stats, open(dump_file, "wb"))
 
     def att_scn(dataloader, args):
     num_attrs = len(dataloader.dataset.attribute_names)
-    info = pickle.load(open('util_files/places_scene_info.pkl', 'rb'))
+    load_file = os.path.join(os.getcwd(), 'util_files/places_scene_info.pkl')
+    info = pickle.load(open(load_file, 'rb'))
     idx_to_scene = info['idx_to_scene']
     idx_to_scenegroup = info['idx_to_scenegroup']
     sceneidx_to_scenegroupidx = info['sceneidx_to_scenegroupidx']
@@ -241,4 +247,5 @@ def att_clu(dataloader, args):
 
     info_stats = {}
     info_stats['scenes_per'] = scenes_per
-    pickle.dump(info_stats, open('results/{}/att_scn.pkl'.format(args.folder), 'wb'))
+    dump_file = os.path.join(os.getcwd(), 'results/{}/att_scn.pkl'.format(args.folder))
+    pickle.dump(info_stats, open(dump_file, 'wb'))
