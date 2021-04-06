@@ -930,6 +930,10 @@ class CityScapes(data.Dataset):
         # directory storing gps information
         self.gps_folder = '/Users/home/Desktop/research/data/cityscapes/vehicle_trainvaltest/vehicle/train'
 
+        # filepath of boundary shapefile
+        with open("/Users/home/Downloads/stanford-nh891yz3147-geojson.json") as f:
+            self.geo_boundaries = json.load(f)
+
         # store all of the city names in array [aachen, bochum, etc]
         self.city_names = os.listdir(self.gps_folder)
         self.city_names.remove('.DS_Store')
@@ -943,11 +947,8 @@ class CityScapes(data.Dataset):
             self.image_ids = self.image_ids +  [os.path.join(city, name.split("_vehicle")[0]) for name in city_filenames]
         print("done with ids (1/2)")
 
-        with open("/Users/home/Downloads/stanford-nh891yz3147-geojson.json") as f:
-            self.geo_boundaries = json.load(f)
-
         # TODO: categories work
-        lab_arr = ['unlabeled',
+        self.categories = ['unlabeled',
             'ego vehicle',
             'rectification border',
             'out of roi',
@@ -982,7 +983,7 @@ class CityScapes(data.Dataset):
             'motorcycle',
             'bicycle',
             'license plate']
-        self.labels_to_names = {i : i for i in lab_arr}
+        self.labels_to_names = {i : i for i in self.categories}
 
         print("done with categories (2/2)")
 

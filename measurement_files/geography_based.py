@@ -42,6 +42,11 @@ def country_to_iso3(country):
     return iso3
 
 def geo_ctr(dataloader, args):
+    # redirect to geo_ctr_gps if dataset is of gps form:
+    if (dataloader.dataset.geo_boundaries is not None):
+        print("redirecting to geo_ctr_gps()...")
+        return geo_ctr_gps(dataloader, args)
+    
     counts = {}
 
     for i, (data, target) in enumerate(tqdm(dataloader)):
@@ -52,16 +57,18 @@ def geo_ctr(dataloader, args):
 
     pickle.dump(counts, open("results/{}/geo_ctr.pkl".format(args.folder), "wb"))
 
-def custom_geo_ctr(dataloader, args):
+# private function called from geo_ctr() if dataset is of gps form
+def geo_ctr_gps(dataloader, args):
     # TODO: remove process_cutoff once finalized
     process_cutoff = 100
 
-    # import custom political boundaries, here I am using Germany's
-    # administration region political boundaries
-    with open("/Users/home/Downloads/stanford-nh891yz3147-geojson.json") as f:
-        geo_boundaries = json.load(f)
+    # import custom political boundaries shapefile from dataset 
+    geo_boundaries = dataloader.dataset.geo_boundaries
     
-    # return name of politcal region that a point falls into (eg. Manhattan)
+#     with open("/Users/home/Downloads/stanford-nh891yz3147-geojson.json") as f:
+#         geo_boundaries = json.load(f)
+    
+    # fn that returns name of political region that a point falls into (eg. Manhattan)
     def bin_point(lng, lat):
         point = Point(lng, lat)
 
@@ -72,9 +79,13 @@ def custom_geo_ctr(dataloader, args):
                 return feature['properties']['name_1']
         return None
     
+    # maps each region (eg. Manhattan) to an array of id's representing the data filename
     region_to_id_map = {}
+    # maps each region to a dict of counts for each category ie: {traffic light: 1, car: 30...}
     region_to_cat_map = {}
+    # maps each id (representing data filename) to gps (lat + lng information)
     id_to_gps_map = {}
+    
     for i, (data, target) in enumerate(tqdm(dataloader)):
         if i > process_cutoff:
             break
