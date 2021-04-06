@@ -153,6 +153,36 @@ def count_cooccurrence(dataloader, args):
                         counts[attribute[0]]["{0}-{1}".format(cat_b, cat_a)] += 1
     pickle.dump(counts, open("results/{}/att_cnt.pkl".format(args.folder), "wb"))
 
+def att_dis(dataloader, args):
+    categories = dataloader.dataset.categories
+    attr_names = dataloader.dataset.attribute_names
+    num_attrs = len(attr_names)
+    distances = [[[] for j in range(num_attrs)] for i in range(len(categories))]
+    for i, (data, target) in enumerate(tqdm(dataloader)):
+        attr = target[1]
+        anns = target[0]
+        file_path = target[3]
+        if len(attr) > 1:
+            person_center = np.array([attr[1][0] + (attr[1][1]/2.), attr[1][2] + (attr[1][3]/2.)])
+            person_area = (attr[1][1]-attr[1][0])*(attr[1][3]-attr[1][2])
+            seen_instances = []
+            for j, ann in enumerate(anns):
+                ann_center = np.array([ann['bbox'][0] + (ann['bbox'][1]/2.), ann['bbox'][2] + (ann['bbox'][3]/2.)])
+                ann_area = (ann['bbox'][1]-ann['bbox'][0])*(ann['bbox'][3]-ann['bbox'][2])
+                distance = np.linalg.norm(person_center - ann_center)
+                # Finds the person-object pair that has the shortest distance
+                if categories.index(ann['label']) in seen_instances:
+                    prev = distances[categories.index(ann['label'])][attr[0] - 1][-1]
+                    prev_calc_dist = prev[0] / np.sqrt(prev[1]*prev[2])
+                    calc_dist = distance / np.sqrt(person_area*ann_area)
+                    if calc_dist < prev_calc_dist:
+                        distances[categories.index(ann['label'])][attr[0] - 1][-1] = (distance, person_area, ann_area, file_path, j)
+                else:
+                    distances[categories.index(ann['label'])][attr[0] - 1].append((distance, person_area, ann_area, file_path, j))
+                    seen_instances.append(categories.index(ann['label']))
+
+    pickle.dump(distances, open("results/{}/att_dis.pkl".format(args.folder), "wb"))
+
 def att_clu(dataloader, args):
     use_cuda = not args.ngpu and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
@@ -211,12 +241,12 @@ def att_clu(dataloader, args):
                     continue
                 small_data = F.interpolate(instance.unsqueeze(0), size=32, mode='bilinear').to(device)
                 this_small_features = small_model.features(small_data)
-                if len(scene_features[index][attr[0]]) < 500 and index not in scene_added:
+                if len(scene_features[index][attr[0]-1]) < 500 and index not in scene_added:
                     scene_added.append(index)
-                    scene_features[index][attr[0]].extend(this_features.data.cpu().numpy())
-                    scene_filepaths[index][attr[0]].append((target[3], pred))
-                if len(instance_features[index][attr[0]]) < 500:
-                    instance_features[index][attr[0]].extend(this_small_features.data.cpu().numpy())
+                    scene_features[index][attr[0]-1].extend(this_features.data.cpu().numpy())
+                    scene_filepaths[index][attr[0]-1].append((target[3], pred))
+                if len(instance_features[index][attr[0]-1]) < 500:
+                    instance_features[index][attr[0]-1].extend(this_small_features.data.cpu().numpy())
     stats = {}
     stats['instance'] = instance_features
     stats['scene'] = scene_features
