@@ -930,9 +930,13 @@ class CityScapes(data.Dataset):
         # directory storing gps information
         self.gps_folder = '/Users/home/Desktop/research/data/cityscapes/vehicle_trainvaltest/vehicle/train'
 
-        # filepath of boundary shapefile
+        # boundary shapefile
         with open("/Users/home/Downloads/stanford-nh891yz3147-geojson.json") as f:
             self.geo_boundaries = json.load(f)
+
+        # csv data for choropleth analysis
+        self.choropleth_filepath = "/Users/home/Downloads/data.csv"
+        
 
         # store all of the city names in array [aachen, bochum, etc]
         self.city_names = os.listdir(self.gps_folder)

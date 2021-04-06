@@ -46,7 +46,7 @@ def geo_ctr(dataloader, args):
     if (dataloader.dataset.geo_boundaries is not None):
         print("redirecting to geo_ctr_gps()...")
         return geo_ctr_gps(dataloader, args)
-    
+    print("starting geo_ctr() original...")
     counts = {}
 
     for i, (data, target) in enumerate(tqdm(dataloader)):
@@ -64,10 +64,7 @@ def geo_ctr_gps(dataloader, args):
 
     # import custom political boundaries shapefile from dataset 
     geo_boundaries = dataloader.dataset.geo_boundaries
-    
-#     with open("/Users/home/Downloads/stanford-nh891yz3147-geojson.json") as f:
-#         geo_boundaries = json.load(f)
-    
+
     # fn that returns name of political region that a point falls into (eg. Manhattan)
     def bin_point(lng, lat):
         point = Point(lng, lat)
@@ -119,6 +116,13 @@ def geo_ctr_gps(dataloader, args):
                 category_counts[lab_dict['label']] = category_counts.get(lab_dict['label'], 0) + 1
             region_to_cat_map['na'] = category_counts
     
+    # combine all the maps into one big one
+    counts_gps = {}
+    counts_gps['region_to_id'] = region_to_id_map
+    counts_gps['region_to_cat'] = region_to_cat_map
+    counts_gps['id_to_gps'] = id_to_gps_map
+    pickle.dump(counts_gps, open("results/{}/geo_ctr_gps.pkl".format(args.folder), "wb"))
+
     pickle.dump(region_to_id_map, open("results/{}/region_to_id.pkl".format(args.folder), "wb"))
     pickle.dump(region_to_cat_map, open("results/{}/region_to_cat.pkl".format(args.folder), "wb"))
     pickle.dump(id_to_gps_map, open("results/{}/id_to_gps.pkl".format(args.folder), "wb"))
