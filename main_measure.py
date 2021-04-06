@@ -4,9 +4,9 @@ import pickle
 import torchvision.transforms as transforms
 import torch.utils.data as data
 import os
-import object_based
-import gender_based
-import geography_based
+from measurement_files import object_based
+from measurement_files import gender_based
+from measurement_files import geography_based
 
 def main():
 

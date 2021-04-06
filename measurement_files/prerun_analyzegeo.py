@@ -1,3 +1,5 @@
+import sys
+sys.path.append('.')
 import datasets
 import torchvision.transforms as transforms
 import pycountry
@@ -193,7 +195,7 @@ def sixprep(dataset, folder_name):
 
 def tenprep(dataset, folder_name):
     iso3_to_subregion = pickle.load(open('iso3_to_subregion_mappings.pkl', 'rb'))
-    mappings = pickle.load(open('country_lang_mappings.pkl', 'rb'))
+    mappings = pickle.load(open('util_files/country_lang_mappings.pkl', 'rb'))
     iso3_to_lang = mappings['iso3_to_lang']
     lang_to_iso3 = mappings['lang_to_iso3']
 
