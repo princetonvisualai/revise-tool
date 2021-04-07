@@ -17,6 +17,7 @@ import json
 from shapely.geometry import Point
 from shapely.geometry import shape 
 from shapely.geometry import Polygon
+import os
 
 def country_to_iso3(country):
     missing = {'South+Korea': 'KOR',
@@ -59,9 +60,6 @@ def geo_ctr(dataloader, args):
 
 # private function called from geo_ctr() if dataset is of gps form
 def geo_ctr_gps(dataloader, args):
-    # TODO: remove process_cutoff once finalized
-    process_cutoff = 100
-
     # import custom political boundaries shapefile from dataset 
     geo_boundaries = dataloader.dataset.geo_boundaries
 
@@ -78,57 +76,46 @@ def geo_ctr_gps(dataloader, args):
     
     # maps each region (eg. Manhattan) to an array of id's representing the data filename
     region_to_id_map = {}
-    # maps each region to a dict of counts for each category ie: {traffic light: 1, car: 30...}
-    region_to_cat_map = {}
     # maps each id (representing data filename) to gps (lat + lng information)
     id_to_gps_map = {}
     # maps each id (representing data filename) to region 
     id_to_region_map = {}
     
     for i, (data, target) in enumerate(tqdm(dataloader)):
-        if i > process_cutoff:
-            break
         lat_lng = target[5]
         id_to_gps_map[target[3]] = lat_lng
         # find which region the image was taken from
         region_name = bin_point(lat_lng['lng'], lat_lng['lat'])
 
-        id_to_region_map[target[3]] = region_name
-
         # add filepath id to region_to_id_map
         if region_name is not None:
+            id_to_region_map[target[3]] = region_name
+
             id_list = region_to_id_map.get(region_name, [])
             id_list.append(target[3])
             # add filepath id to region_to_id_map
             region_to_id_map[region_name] = id_list
 
-            # add categories to region_to_categories_map
-            category_counts = region_to_cat_map.get(region_name, {})
-            for lab_dict in target[0]:
-                category_counts[lab_dict['label']] = category_counts.get(lab_dict['label'], 0) + 1
-            region_to_cat_map[region_name] = category_counts
-
         else:
+            id_to_region_map[target[3]] = 'na'
+
             id_list = region_to_id_map.get('na', [])
             id_list.append(target[3])
             # add filepath id to region_to_id_map
             region_to_id_map['na'] = id_list
-
-            # add categories to region_to_categories_map
-            category_counts = region_to_cat_map.get('na', {})
-            for lab_dict in target[0]:
-                category_counts[lab_dict['label']] = category_counts.get(lab_dict['label'], 0) + 1
-            region_to_cat_map['na'] = category_counts
     
     # combine all the maps into one big one
     counts_gps = {}
     counts_gps['region_to_id'] = region_to_id_map
-    # counts_gps['region_to_cat'] = region_to_cat_map
     counts_gps['id_to_gps'] = id_to_gps_map
     counts_gps['id_to_region'] = id_to_region_map
     pickle.dump(counts_gps, open("results/{}/geo_ctr_gps.pkl".format(args.folder), "wb"))
 
 def geo_tag(dataloader, args):
+    # redirect to geo_tag_gps if dataset is of gps form:
+    if (dataloader.dataset.geo_boundaries is not None):
+        print("redirecting to geo_tag_gps()...")
+        return geo_tag_gps(dataloader, args)
     country_tags = {}
     tag_to_subregion_features = {}
     categories = dataloader.dataset.categories
@@ -174,6 +161,38 @@ def geo_tag(dataloader, args):
     info_stats['country_tags'] = country_tags
     info_stats['tag_to_subregion_features'] = tag_to_subregion_features
     pickle.dump(info_stats, open("results/{}/geo_tag.pkl".format(args.folder), "wb"))
+
+# private function called from geo_tag() if dataset is of gps form
+def geo_tag_gps(dataloader, args):
+    # map from a region name to a list whose value at index i represents count of category
+    # i 
+    region_tags = {}
+    categories = dataloader.dataset.categories
+
+    if not os.path.exists("results/{}/geo_ctr_gps.pkl".format(args.folder)):
+        print('running geo_ctr_gps() first to get necessary info...')
+        geo_ctr_gps(dataloader, args)
+    
+    counts_gps = pickle.load(open("results/{}/geo_ctr_gps.pkl".format(args.folder), "rb"))
+    id_to_region = counts_gps['id_to_region']
+
+    
+    for i, (data, target) in enumerate(tqdm(dataloader)):
+        # if i > process_cutoff:
+        #     break
+        if data is None:
+            continue
+        region_name = id_to_region[target[3]]
+        anns = target[0]
+        if region_name not in region_tags.keys():
+            region_tags[region_name] = np.zeros(len(categories))
+        # add categories to region_tags
+        for ann in anns:
+            region_tags[region_name][categories.index(ann['label'])] += 1
+    info_stats = {}
+    info_stats['region_tags'] = region_tags
+    # info_stats['tag_to_subregion_features'] = tag_to_subregion_features
+    pickle.dump(info_stats, open("results/{}/geo_tag_gps.pkl".format(args.folder), "wb"))
 
 def geo_lng(dataloader, args):
     mappings = pickle.load(open('util_files/country_lang_mappings.pkl', 'rb'))
