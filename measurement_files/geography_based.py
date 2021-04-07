@@ -82,6 +82,8 @@ def geo_ctr_gps(dataloader, args):
     region_to_cat_map = {}
     # maps each id (representing data filename) to gps (lat + lng information)
     id_to_gps_map = {}
+    # maps each id (representing data filename) to region 
+    id_to_region_map = {}
     
     for i, (data, target) in enumerate(tqdm(dataloader)):
         if i > process_cutoff:
@@ -90,6 +92,8 @@ def geo_ctr_gps(dataloader, args):
         id_to_gps_map[target[3]] = lat_lng
         # find which region the image was taken from
         region_name = bin_point(lat_lng['lng'], lat_lng['lat'])
+
+        id_to_region_map[target[3]] = region_name
 
         # add filepath id to region_to_id_map
         if region_name is not None:
@@ -119,13 +123,10 @@ def geo_ctr_gps(dataloader, args):
     # combine all the maps into one big one
     counts_gps = {}
     counts_gps['region_to_id'] = region_to_id_map
-    counts_gps['region_to_cat'] = region_to_cat_map
+    # counts_gps['region_to_cat'] = region_to_cat_map
     counts_gps['id_to_gps'] = id_to_gps_map
+    counts_gps['id_to_region'] = id_to_region_map
     pickle.dump(counts_gps, open("results/{}/geo_ctr_gps.pkl".format(args.folder), "wb"))
-
-    pickle.dump(region_to_id_map, open("results/{}/region_to_id.pkl".format(args.folder), "wb"))
-    pickle.dump(region_to_cat_map, open("results/{}/region_to_cat.pkl".format(args.folder), "wb"))
-    pickle.dump(id_to_gps_map, open("results/{}/id_to_gps.pkl".format(args.folder), "wb"))
 
 def geo_tag(dataloader, args):
     country_tags = {}
