@@ -1,5 +1,5 @@
 import sys
-sys.path.append('.')
+sys.path.append('..')
 import datasets
 import torchvision.transforms as transforms
 import pycountry

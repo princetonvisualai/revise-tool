@@ -1,6 +1,6 @@
 import argparse
 import sys
-sys.path.append('.')
+sys.path.append('..')
 from datasets import *
 import pickle
 import torchvision.transforms as transforms
