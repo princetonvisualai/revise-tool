@@ -269,7 +269,6 @@ class TemplateDataset(data.Dataset):
         # whose values are doubles
         lat_lng = None 
 
-
         #Note: Gender info should not be in an array since gender_info is already array
         anns = [image_anns, [gender_info], [country], file_path, scene_group, lat_lng]
 

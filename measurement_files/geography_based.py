@@ -66,7 +66,6 @@ def geo_ctr_gps(dataloader, args):
     # fn that returns name of political region that a point falls into (eg. Manhattan)
     def bin_point(lng, lat):
         point = Point(lng, lat)
-
         # check each polygon to see if it contains the point
         for feature in geo_boundaries['features']:
             polygon = shape(feature['geometry'])
@@ -86,11 +85,9 @@ def geo_ctr_gps(dataloader, args):
         id_to_gps_map[target[3]] = lat_lng
         # find which region the image was taken from
         region_name = bin_point(lat_lng['lng'], lat_lng['lat'])
-
         # add filepath id to region_to_id_map
         if region_name is not None:
             id_to_region_map[target[3]] = region_name
-
             id_list = region_to_id_map.get(region_name, [])
             id_list.append(target[3])
             # add filepath id to region_to_id_map
@@ -98,7 +95,6 @@ def geo_ctr_gps(dataloader, args):
 
         else:
             id_to_region_map[target[3]] = 'na'
-
             id_list = region_to_id_map.get('na', [])
             id_list.append(target[3])
             # add filepath id to region_to_id_map
@@ -175,11 +171,8 @@ def geo_tag_gps(dataloader, args):
     
     counts_gps = pickle.load(open("results/{}/geo_ctr_gps.pkl".format(args.folder), "rb"))
     id_to_region = counts_gps['id_to_region']
-
     
     for i, (data, target) in enumerate(tqdm(dataloader)):
-        # if i > process_cutoff:
-        #     break
         if data is None:
             continue
         region_name = id_to_region[target[3]]
