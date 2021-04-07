@@ -63,7 +63,7 @@ def main():
     elif args.dataset == 'celeba':
         dataset = CelebADataset(transform_train)
     elif args.dataset == 'cityscapes':
-        dataset = CityScapes(transform_train)
+        dataset = CityScapesDataset(transform_train)
     
     for meas in args.measurements:
         print("Starting measurement {}".format(meas))

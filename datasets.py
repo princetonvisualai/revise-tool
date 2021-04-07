@@ -265,8 +265,13 @@ class TemplateDataset(data.Dataset):
 
         scene_group = self.scene_mapping[file_path] # optional
 
+        #optional. lat_lng is a dictionary with 2 keys: 'lat' and 'lng'
+        # whose values are doubles
+        lat_lng = None 
+
+
         #Note: Gender info should not be in an array since gender_info is already array
-        anns = [image_anns, [gender_info], [country], file_path, scene_group]
+        anns = [image_anns, [gender_info], [country], file_path, scene_group, lat_lng]
 
         return image, anns
 
@@ -921,7 +926,7 @@ class CelebADataset(data.Dataset):
 
         return image, anns
 
-class CityScapes(data.Dataset):
+class CityScapesDataset(data.Dataset):
 
     def __init__(self, transform): 
         self.transform = transform
@@ -988,10 +993,7 @@ class CityScapes(data.Dataset):
             'bicycle',
             'license plate']
         self.labels_to_names = {i : i for i in self.categories}
-
         print("done with categories (2/2)")
-
-
 
     def __getitem__(self, index):
         image_id = self.image_ids[index]
@@ -1003,17 +1005,13 @@ class CityScapes(data.Dataset):
     def from_path(self, file_path):
         image_id = os.path.join(self.img_folder, "{0}_gtFine_color.png".format(file_path))
         image = Image.open(image_id).convert("RGB")
-        # image_size = list(image.size())[1:]
-
         country = None
-
         # for each image, get category information
         image_anns = []
 
         category_path = os.path.join(self.img_folder, "{0}_gtFine_polygons.json".format(file_path))
         category_data = json.load(open(category_path)).get('objects', [])
 
-        
         for i in range(len(category_data)):
             label = category_data[i].get('label', None)
             if label is not None:
@@ -1027,8 +1025,15 @@ class CityScapes(data.Dataset):
             lat_lng['lng'] = json_data["gpsLongitude"]
 
         anns = [image_anns, None, [country], file_path, None, lat_lng]    
-
         return image, anns
 
+        '''
+        Dataset can be downloaded here: 
+        https://www.cityscapes-dataset.com/downloads/
 
+        After creating an account, you download the image data: 
+        gtFine_trainvaltest.zip (241MB) [md5]
 
+        and the gps data:
+        vehicle_trainvaltest.zip (2MB) [md5]
+        '''
