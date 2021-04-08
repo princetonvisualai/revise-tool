@@ -1,3 +1,5 @@
+import os
+assert 'measurement' not in os.getcwd() and 'analysis_notebooks' not in os.getcwd(), "Script must be run from home directory"
 import argparse
 import sys
 sys.path.append('.')
@@ -10,7 +12,6 @@ import torch.utils.data as data
 import torch.nn as nn
 from torch.nn import functional as F
 import torch
-import os
 import numpy as np
 import copy
 from util_files.cifar_models import resnet110
