@@ -163,6 +163,7 @@ def geo_tag_gps(dataloader, args):
     # map from a region name to a list whose value at index i represents count of category
     # i 
     region_tags = {}
+    tag_to_region_features = {}
     categories = dataloader.dataset.categories
 
     if not os.path.exists("results/{}/geo_ctr_gps.pkl".format(args.folder)):
@@ -171,20 +172,50 @@ def geo_tag_gps(dataloader, args):
     
     counts_gps = pickle.load(open("results/{}/geo_ctr_gps.pkl".format(args.folder), "rb"))
     id_to_region = counts_gps['id_to_region']
-    
+
+    # get name of regions
+    unique_regions = list(set(id_to_region.values()))
+
+    # Extracts features from model pretrained on ImageNet
+    use_cuda = torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
+    model = models.alexnet(pretrained=True).to(device)
+    new_classifier = nn.Sequential(*list(model.classifier.children())[:-1])
+    model.classifier = new_classifier
+    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+
+    region_features = {}
+    for region in unique_regions:
+        region_features[region] = []
+
+    for cat in range(len(categories)):
+        tag_to_region_features[cat] = copy.deepcopy(region_features)
+
     for i, (data, target) in enumerate(tqdm(dataloader)):
         if data is None:
             continue
         region_name = id_to_region[target[3]]
         anns = target[0]
+        filepath = target[3]
+        this_categories = list(set([categories.index(ann['label']) for ann in anns]))
+
         if region_name not in region_tags.keys():
             region_tags[region_name] = np.zeros(len(categories))
-        # add categories to region_tags
-        for ann in anns:
-            region_tags[region_name][categories.index(ann['label'])] += 1
+        this_features = None
+        for cat in this_categories:
+            if len(tag_to_region_features[cat][region_name]) < 500:
+                data = normalize(data).to(device)
+                big_data = F.interpolate(data.unsqueeze(0), size=224, mode='bilinear').to(device)
+                this_features = model.forward(big_data)
+                break
+        for cat in this_categories:
+            region_tags[region_name][cat] += 1
+            if this_features is not None and len(tag_to_region_features[cat][region_name]) < 500:
+                tag_to_region_features[cat][region_name].append((this_features.data.cpu().numpy(), filepath))
+
     info_stats = {}
     info_stats['region_tags'] = region_tags
-    # info_stats['tag_to_subregion_features'] = tag_to_subregion_features
+    info_stats['tag_to_region_features'] = tag_to_region_features
     pickle.dump(info_stats, open("results/{}/geo_tag_gps.pkl".format(args.folder), "wb"))
 
 def geo_lng(dataloader, args):

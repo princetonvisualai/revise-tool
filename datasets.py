@@ -1011,6 +1011,7 @@ class CityScapesDataset(data.Dataset):
     def from_path(self, file_path):
         image_id = os.path.join(self.img_folder, "{0}_gtFine_color.png".format(file_path))
         image = Image.open(image_id).convert("RGB")
+        image = self.transform(image)
         country = None
         # for each image, get category information
         image_anns = []
