@@ -1,3 +1,5 @@
+import os
+assert 'measurement' not in os.getcwd() and 'analysis_notebooks' not in os.getcwd(), "Script must be run from home directory"
 import sys
 sys.path.append('.')
 import datasets
@@ -6,7 +8,6 @@ import pycountry
 from scipy import stats
 from sklearn import svm
 import pickle
-import os
 import random
 import matplotlib.pyplot as plt
 import numpy as np

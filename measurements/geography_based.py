@@ -1,3 +1,5 @@
+import os
+assert 'measurement' not in os.getcwd() and 'analysis_notebooks' not in os.getcwd(), "Script must be run from home directory"
 import numpy as np
 import pickle
 import fasttext
