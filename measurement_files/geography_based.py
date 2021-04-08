@@ -209,10 +209,10 @@ def geo_tag_gps(dataloader, args):
                 this_features = model.forward(big_data)
                 break
         for cat in this_categories:
-            region_tags[region_name][cat] += 1
             if this_features is not None and len(tag_to_region_features[cat][region_name]) < 500:
                 tag_to_region_features[cat][region_name].append((this_features.data.cpu().numpy(), filepath))
-
+        for ann in anns:
+            region_tags[region_name][categories.index(ann['label'])] += 1
     info_stats = {}
     info_stats['region_tags'] = region_tags
     info_stats['tag_to_region_features'] = tag_to_region_features
