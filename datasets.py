@@ -925,6 +925,16 @@ class CelebADataset(data.Dataset):
 
         return image, anns
 
+'''
+Dataset can be downloaded here: 
+https://www.cityscapes-dataset.com/downloads/
+
+After creating an account, you download the image data: 
+gtFine_trainvaltest.zip (241MB) [md5]
+
+and the gps data:
+vehicle_trainvaltest.zip (2MB) [md5]
+'''
 class CityScapesDataset(data.Dataset):
 
     def __init__(self, transform): 
@@ -1033,14 +1043,3 @@ class CityScapesDataset(data.Dataset):
 
         anns = [image_anns, None, [country, lat_lng], file_path, None]    
         return image, anns
-
-        '''
-        Dataset can be downloaded here: 
-        https://www.cityscapes-dataset.com/downloads/
-
-        After creating an account, you download the image data: 
-        gtFine_trainvaltest.zip (241MB) [md5]
-
-        and the gps data:
-        vehicle_trainvaltest.zip (2MB) [md5]
-        '''
