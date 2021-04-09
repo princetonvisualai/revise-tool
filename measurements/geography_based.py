@@ -100,7 +100,7 @@ def geo_ctr_gps(dataloader, args):
             id_list = region_to_id_map.get('out_of_boundary', [])
             id_list.append(target[3])
             # add filepath id to region_to_id_map
-            region_to_id_map['na'] = id_list
+            region_to_id_map['out_of_boundary'] = id_list
     
     # combine all the maps into one big one
     counts_gps = {}
