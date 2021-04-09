@@ -1031,7 +1031,7 @@ class CityScapesDataset(data.Dataset):
             lat_lng['lat'] = json_data["gpsLatitude"]
             lat_lng['lng'] = json_data["gpsLongitude"]
 
-        anns = [image_anns, None, [country], file_path, None, lat_lng]    
+        anns = [image_anns, None, [country, lat_lng], file_path, None, lat_lng]    
         return image, anns
 
         '''

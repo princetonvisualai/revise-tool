@@ -83,7 +83,7 @@ def geo_ctr_gps(dataloader, args):
     id_to_region_map = {}
     
     for i, (data, target) in enumerate(tqdm(dataloader)):
-        lat_lng = target[5]
+        lat_lng = target[2][1]
         id_to_gps_map[target[3]] = lat_lng
         # find which region the image was taken from
         region_name = bin_point(lat_lng['lng'], lat_lng['lat'])
