@@ -172,13 +172,13 @@ def att_dis(dataloader, args):
                 distance = np.linalg.norm(person_center - ann_center)
                 # Finds the person-object pair that has the shortest distance
                 if categories.index(ann['label']) in seen_instances:
-                    prev = distances[categories.index(ann['label'])][attr[0] - 1][-1]
+                    prev = distances[categories.index(ann['label'])][attr[0]][-1]
                     prev_calc_dist = prev[0] / np.sqrt(prev[1]*prev[2])
                     calc_dist = distance / np.sqrt(person_area*ann_area)
                     if calc_dist < prev_calc_dist:
-                        distances[categories.index(ann['label'])][attr[0] - 1][-1] = (distance, person_area, ann_area, file_path, j)
+                        distances[categories.index(ann['label'])][attr[0]][-1] = (distance, person_area, ann_area, file_path, j)
                 else:
-                    distances[categories.index(ann['label'])][attr[0] - 1].append((distance, person_area, ann_area, file_path, j))
+                    distances[categories.index(ann['label'])][attr[0]].append((distance, person_area, ann_area, file_path, j))
                     seen_instances.append(categories.index(ann['label']))
 
     pickle.dump(distances, open("results/{}/att_dis.pkl".format(args.folder), "wb"))
@@ -241,19 +241,19 @@ def att_clu(dataloader, args):
                     continue
                 small_data = F.interpolate(instance.unsqueeze(0), size=32, mode='bilinear').to(device)
                 this_small_features = small_model.features(small_data)
-                if len(scene_features[index][attr[0]-1]) < 500 and index not in scene_added:
+                if len(scene_features[index][attr[0]]) < 500 and index not in scene_added:
                     scene_added.append(index)
-                    scene_features[index][attr[0]-1].extend(this_features.data.cpu().numpy())
-                    scene_filepaths[index][attr[0]-1].append((target[3], pred))
-                if len(instance_features[index][attr[0]-1]) < 500:
-                    instance_features[index][attr[0]-1].extend(this_small_features.data.cpu().numpy())
+                    scene_features[index][attr[0]].extend(this_features.data.cpu().numpy())
+                    scene_filepaths[index][attr[0]].append((target[3], pred))
+                if len(instance_features[index][attr[0]]) < 500:
+                    instance_features[index][attr[0]].extend(this_small_features.data.cpu().numpy())
     stats = {}
     stats['instance'] = instance_features
     stats['scene'] = scene_features
     stats['scene_filepaths'] = scene_filepaths
     pickle.dump(stats, open("results/{}/att_clu.pkl".format(args.folder), "wb"))
 
-    def att_scn(dataloader, args):
+def att_scn(dataloader, args):
     num_attrs = len(dataloader.dataset.attribute_names)
     info = pickle.load(open('util_files/places_scene_info.pkl', 'rb'))
     idx_to_scene = info['idx_to_scene']
