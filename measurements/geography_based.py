@@ -96,8 +96,8 @@ def geo_ctr_gps(dataloader, args):
             region_to_id_map[region_name] = id_list
 
         else:
-            id_to_region_map[target[3]] = 'na'
-            id_list = region_to_id_map.get('na', [])
+            id_to_region_map[target[3]] = 'out_of_boundary'
+            id_list = region_to_id_map.get('out_of_boundary', [])
             id_list.append(target[3])
             # add filepath id to region_to_id_map
             region_to_id_map['na'] = id_list
