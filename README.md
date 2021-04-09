@@ -37,12 +37,13 @@ python3 main_measure.py --measurements 'att_siz' 'att_cnt' 'att_dis' 'att_clu' '
 (2.5 optional) 
 To optionally do some of the processing ahead of time so interacting with the notebook can be faster, for the Gender notebook (att_clu) run
 ```
-python3 prerun_analyzegen.py --dataset 'coco' --folder 'coco_example'
+python3 measurements/prerun_analyzegen.py --dataset 'coco' --folder 'coco_example'
 ```
 and for the Geography notebook (geo_tag and geo_lng) run
 ```
-python3 prerun_analyzegeo.py --dataset 'yfcc' --folder 'yfcc_example'
+python3 measurements/prerun_analyzegeo.py --dataset 'yfcc' --folder 'yfcc_example'
 ```
+Note that both commands must be run from the home directory. 
 
 (3) Open up the jupyter notebook corresponding to the axis of bias you would like to explore: object, gender, or geography. Further instructions are at the top of the notebook about how to run them.
 
