@@ -1,5 +1,3 @@
-import os
-assert 'measurement' not in os.getcwd() and 'analysis_notebooks' not in os.getcwd(), "Script must be run from home directory"
 import argparse
 import sys
 sys.path.append('.')
@@ -11,6 +9,7 @@ import torch.utils.data as data
 import torch.nn.functional as F
 import numpy as np
 import torch.nn as nn
+import os
 import cv2
 import boto3
 import imageio
@@ -154,6 +153,36 @@ def count_cooccurrence(dataloader, args):
                         counts[attribute[0]]["{0}-{1}".format(cat_b, cat_a)] += 1
     pickle.dump(counts, open("results/{}/att_cnt.pkl".format(args.folder), "wb"))
 
+def att_dis(dataloader, args):
+    categories = dataloader.dataset.categories
+    attr_names = dataloader.dataset.attribute_names
+    num_attrs = len(attr_names)
+    distances = [[[] for j in range(num_attrs)] for i in range(len(categories))]
+    for i, (data, target) in enumerate(tqdm(dataloader)):
+        attr = target[1]
+        anns = target[0]
+        file_path = target[3]
+        if len(attr) > 1:
+            person_center = np.array([attr[1][0] + (attr[1][1]/2.), attr[1][2] + (attr[1][3]/2.)])
+            person_area = (attr[1][1]-attr[1][0])*(attr[1][3]-attr[1][2])
+            seen_instances = []
+            for j, ann in enumerate(anns):
+                ann_center = np.array([ann['bbox'][0] + (ann['bbox'][1]/2.), ann['bbox'][2] + (ann['bbox'][3]/2.)])
+                ann_area = (ann['bbox'][1]-ann['bbox'][0])*(ann['bbox'][3]-ann['bbox'][2])
+                distance = np.linalg.norm(person_center - ann_center)
+                # Finds the person-object pair that has the shortest distance
+                if categories.index(ann['label']) in seen_instances:
+                    prev = distances[categories.index(ann['label'])][attr[0]][-1]
+                    prev_calc_dist = prev[0] / np.sqrt(prev[1]*prev[2])
+                    calc_dist = distance / np.sqrt(person_area*ann_area)
+                    if calc_dist < prev_calc_dist:
+                        distances[categories.index(ann['label'])][attr[0]][-1] = (distance, person_area, ann_area, file_path, j)
+                else:
+                    distances[categories.index(ann['label'])][attr[0]].append((distance, person_area, ann_area, file_path, j))
+                    seen_instances.append(categories.index(ann['label']))
+
+    pickle.dump(distances, open("results/{}/att_dis.pkl".format(args.folder), "wb"))
+
 def att_clu(dataloader, args):
     use_cuda = not args.ngpu and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
@@ -224,7 +253,7 @@ def att_clu(dataloader, args):
     stats['scene_filepaths'] = scene_filepaths
     pickle.dump(stats, open("results/{}/att_clu.pkl".format(args.folder), "wb"))
 
-    def att_scn(dataloader, args):
+def att_scn(dataloader, args):
     num_attrs = len(dataloader.dataset.attribute_names)
     info = pickle.load(open('util_files/places_scene_info.pkl', 'rb'))
     idx_to_scene = info['idx_to_scene']
