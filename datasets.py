@@ -266,11 +266,11 @@ class TemplateDataset(data.Dataset):
         scene_group = self.scene_mapping[file_path] # optional
 
         #optional. lat_lng is a dictionary with 2 keys: 'lat' and 'lng'
-        # whose values are doubles
+        # whose values are doubles. 
         lat_lng = None 
 
         #Note: Gender info should not be in an array since gender_info is already array
-        anns = [image_anns, [gender_info], [country], file_path, scene_group, lat_lng]
+        anns = [image_anns, [gender_info], [country, lat_lng], file_path, scene_group]
 
         return image, anns
 
@@ -1031,7 +1031,7 @@ class CityScapesDataset(data.Dataset):
             lat_lng['lat'] = json_data["gpsLatitude"]
             lat_lng['lng'] = json_data["gpsLongitude"]
 
-        anns = [image_anns, None, [country, lat_lng], file_path, None, lat_lng]    
+        anns = [image_anns, None, [country, lat_lng], file_path, None]    
         return image, anns
 
         '''
