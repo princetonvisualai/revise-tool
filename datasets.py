@@ -965,7 +965,6 @@ class CityScapesDataset(data.Dataset):
             self.image_ids = self.image_ids +  [os.path.join(city, name.split("_vehicle")[0]) for name in city_filenames]
         print("done with ids (1/2)")
 
-        # TODO: categories work
         self.categories = ['unlabeled',
             'ego vehicle',
             'rectification border',
