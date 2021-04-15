@@ -49,7 +49,7 @@ def geo_ctr(dataloader, args):
     if (dataloader.dataset.geo_boundaries is not None):
         print("redirecting to geo_ctr_gps()...")
         return geo_ctr_gps(dataloader, args)
-    print("starting geo_ctr() original...")
+    print("starting geo_ctr()...")
     counts = {}
 
     for i, (data, target) in enumerate(tqdm(dataloader)):

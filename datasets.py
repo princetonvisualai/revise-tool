@@ -266,7 +266,7 @@ class TemplateDataset(data.Dataset):
         scene_group = self.scene_mapping[file_path] # optional
 
         #optional. lat_lng is a dictionary with 2 keys: 'lat' and 'lng'
-        # whose values are doubles. 
+        # whose values are type doubles. 
         lat_lng = None 
 
         #Note: Gender info should not be in an array since gender_info is already array
