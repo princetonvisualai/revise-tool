@@ -62,6 +62,8 @@ def main():
         dataset = ImagenetDataset(transform_train)
     elif args.dataset == 'celeba':
         dataset = CelebADataset(transform_train)
+    elif args.dataset == 'cityscapes':
+        dataset = CityScapesDataset(transform_train)
     
     for meas in args.measurements:
         print("Starting measurement {}".format(meas))
