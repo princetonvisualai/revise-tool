@@ -23,6 +23,7 @@ from scipy.special import softmax
 import numpy as np
 from collections import OrderedDict 
 nlp = spacy.load("en_core_web_lg")
+import json
 
 def collate_fn(batch):
     return batch[0]
@@ -264,8 +265,12 @@ class TemplateDataset(data.Dataset):
 
         scene_group = self.scene_mapping[file_path] # optional
 
+        #optional. lat_lng is a dictionary with 2 keys: 'lat' and 'lng'
+        # whose values are type doubles. 
+        lat_lng = None 
+
         #Note: Gender info should not be in an array since gender_info is already array
-        anns = [image_anns, [gender_info], [country], file_path, scene_group]
+        anns = [image_anns, [gender_info], [country, lat_lng], file_path, scene_group]
 
         return image, anns
 
@@ -918,4 +923,122 @@ class CelebADataset(data.Dataset):
         #Note: Gender info should not be in array since gender_info is already array
         anns = [image_anns, gender_info, [country], file_path, scene_group]
 
+        return image, anns
+
+'''
+Dataset can be downloaded here: 
+https://www.cityscapes-dataset.com/downloads/
+
+After creating an account, you download the image data: 
+gtFine_trainvaltest.zip (241MB) [md5]
+
+and the gps data:
+vehicle_trainvaltest.zip (2MB) [md5]
+'''
+class CityScapesDataset(data.Dataset):
+
+    def __init__(self, transform): 
+        self.transform = transform
+        self.img_folder = '/Users/home/Desktop/research/data/cityscapes/gtFine_trainvaltest/gtFine/train'
+
+        # directory storing gps information
+        self.gps_folder = '/Users/home/Desktop/research/data/cityscapes/vehicle_trainvaltest/vehicle/train'
+
+        # boundary shapefile
+        with open("/Users/home/Downloads/stanford-nh891yz3147-geojson.json") as f:
+            self.geo_boundaries = json.load(f)
+
+        # csv data for choropleth analysis
+        self.choropleth_filepath = "/Users/home/Downloads/data.csv"
+        
+
+        # store all of the city names in array [aachen, bochum, etc]
+        self.city_names = os.listdir(self.gps_folder)
+        self.city_names.remove('.DS_Store')
+
+        # Adds the title of the image as its ID 
+        # (e.g. aachen/aachen_000000_000019_gtFine_color.png = aachen/aachen_000000_000019)
+        self.image_ids = []
+        for city in self.city_names:
+            filename_path = os.path.join(self.gps_folder, city)
+            city_filenames = os.listdir(filename_path)
+            self.image_ids = self.image_ids +  [os.path.join(city, name.split("_vehicle")[0]) for name in city_filenames]
+        print("done with ids (1/2)")
+
+        self.categories = ['unlabeled',
+            'ego vehicle',
+            'rectification border',
+            'out of roi',
+            'static',
+            'dynamic',
+            'ground',
+            'road',
+            'sidewalk',
+            'parking',
+            'rail track',
+            'building',
+            'wall',
+            'fence',
+            'guard rail',
+            'bridge',
+            'tunnel',
+            'pole',
+            'polegroup',
+            'traffic light',
+            'traffic sign',
+            'vegetation',
+            'rider',
+            'truckgroup',
+            'terrain',
+            'sky',
+            'person',
+            'persongroup',
+            'bicyclegroup',
+            'motorcyclegroup',
+            'rider',
+            'ridergroup',
+            'car',
+            'cargroup',
+            'truck',
+            'bus',
+            'caravan',
+            'trailer',
+            'train',
+            'motorcycle',
+            'bicycle',
+            'license plate']
+        self.labels_to_names = {i : i for i in self.categories}
+        print("done with categories (2/2)")
+
+    def __getitem__(self, index):
+        image_id = self.image_ids[index]
+        return self.from_path(image_id)
+    
+    def __len__(self):
+        return len(self.image_ids)
+    
+    def from_path(self, file_path):
+        image_id = os.path.join(self.img_folder, "{0}_gtFine_color.png".format(file_path))
+        image = Image.open(image_id).convert("RGB")
+        image = self.transform(image)
+        country = None
+        # for each image, get category information
+        image_anns = []
+
+        category_path = os.path.join(self.img_folder, "{0}_gtFine_polygons.json".format(file_path))
+        category_data = json.load(open(category_path)).get('objects', [])
+
+        for i in range(len(category_data)):
+            label = category_data[i].get('label', None)
+            if label is not None:
+                image_anns.append({'label': label})
+
+        # for each image, get long lat gps information
+        lat_lng = {}
+        json_data = json.load(open(os.path.join(self.gps_folder, "{0}_vehicle.json".format(file_path))))
+        if json_data is not None and "gpsLatitude" in json_data and "gpsLongitude" in json_data:
+            lat_lng['lat'] = json_data["gpsLatitude"]
+            lat_lng['lng'] = json_data["gpsLongitude"]
+
+        anns = [image_anns, None, [country, lat_lng], file_path, None]    
         return image, anns
