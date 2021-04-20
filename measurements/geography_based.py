@@ -64,16 +64,29 @@ def geo_ctr(dataloader, args):
 def geo_ctr_gps(dataloader, args):
     # import custom political boundaries shapefile from dataset 
     geo_boundaries = dataloader.dataset.geo_boundaries
+    geo_boundaries_key_name = dataloader.dataset.geo_boundaries_key_name
+
+    # import subregion boundaries shapefile
+    subregion_boundaries = dataloader.dataset.subregion_boundaries
+    subregion_boundaries_key_name = dataloader.dataset.subregion_boundaries_key_name
 
     # fn that returns name of political region that a point falls into (eg. Manhattan)
-    def bin_point(lng, lat):
+    def bin_point(lng, lat, is_subregion):
         point = Point(lng, lat)
         # check each polygon to see if it contains the point
-        for feature in geo_boundaries['features']:
-            polygon = shape(feature['geometry'])
-            if polygon.contains(point):
-                return feature['properties']['name_1']
-        return None
+        if not is_subregion:
+            for feature in geo_boundaries['features']:
+                polygon = shape(feature['geometry'])
+                if polygon.contains(point):
+                    return feature['properties'][geo_boundaries_key_name]
+            return None
+        else:
+            # subregion binning
+            for feature in subregion_boundaries['features']:
+                polygon = shape(feature['geometry'])
+                if polygon.contains(point):
+                    return feature['properties'][subregion_boundaries_key_name]
+            return None
     
     # maps each region (eg. Manhattan) to an array of id's representing the data filename
     region_to_id_map = {}
@@ -81,12 +94,16 @@ def geo_ctr_gps(dataloader, args):
     id_to_gps_map = {}
     # maps each id (representing data filename) to region 
     id_to_region_map = {}
+
+    # maps each subregion (eg. North America) to an array of id's representing the data filename
+    subregion_to_id_map = {}
     
     for i, (data, target) in enumerate(tqdm(dataloader)):
         lat_lng = target[2][1]
         id_to_gps_map[target[3]] = lat_lng
         # find which region the image was taken from
-        region_name = bin_point(lat_lng['lng'], lat_lng['lat'])
+        region_name = bin_point(lat_lng['lng'], lat_lng['lat'], False)
+
         # add filepath id to region_to_id_map
         if region_name is not None:
             id_to_region_map[target[3]] = region_name
@@ -101,12 +118,24 @@ def geo_ctr_gps(dataloader, args):
             id_list.append(target[3])
             # add filepath id to region_to_id_map
             region_to_id_map['out_of_boundary'] = id_list
-    
+
+        if subregion_boundaries is not None:
+            subregion_name = bin_point(lat_lng['lng'], lat_lng['lat'], True)
+            if subregion_name is not None:
+                id_list = subregion_to_id_map.get(subregion_name, [])
+                id_list.append(target[3])
+                subregion_to_id_map[subregion_name] = id_list
+            else:
+                id_list = subregion_to_id_map.get('out_of_boundary', [])
+                id_list.append(target[3])
+                subregion_to_id_map['out_of_boundary'] = id_list
+
     # combine all the maps into one big one
     counts_gps = {}
     counts_gps['region_to_id'] = region_to_id_map
     counts_gps['id_to_gps'] = id_to_gps_map
     counts_gps['id_to_region'] = id_to_region_map
+    counts_gps['subregion_to_id'] = subregion_to_id_map
     pickle.dump(counts_gps, open("results/{}/geo_ctr_gps.pkl".format(args.folder), "wb"))
 
 def geo_tag(dataloader, args):

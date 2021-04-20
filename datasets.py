@@ -944,13 +944,27 @@ class CityScapesDataset(data.Dataset):
         # directory storing gps information
         self.gps_folder = '/Users/home/Desktop/research/data/cityscapes/vehicle_trainvaltest/vehicle/train'
 
-        # boundary shapefile
+        # local boundary shapefile from 
+        # https://maps.princeton.edu/catalog/stanford-nh891yz3147
         with open("/Users/home/Downloads/stanford-nh891yz3147-geojson.json") as f:
             self.geo_boundaries = json.load(f)
 
-        # csv data for choropleth analysis
+        # name of key representing region name within the shapefile (these key names are different for different shapefiles so it is necessary to specify to access the region name, eg. 'Bayern)
+        self.geo_boundaries_key_name = 'name_1'    
+
+        # subregion boundaries shapefile (for global subregion analysis) from 
+        # https://gist.github.com/cmunns/76fb72646a68202e6bde#file-continents-json
+        with open("/Users/home/Downloads/continents.json") as f:
+            self.subregion_boundaries = json.load(f)
+
+        # name of key representing region name within the shapefile
+        self.subregion_boundaries_key_name = 'continent'
+
+        # csv data for choropleth analysis 
+        # CSV is comprised of 2 columns: 
+        # colname1='Region' (string format of region name, eg. 'Bayern')
+        # colname2='Data' (double format of data of interest, eg. 3.14)
         self.choropleth_filepath = "/Users/home/Downloads/data.csv"
-        
 
         # store all of the city names in array [aachen, bochum, etc]
         self.city_names = os.listdir(self.gps_folder)
