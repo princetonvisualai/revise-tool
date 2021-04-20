@@ -953,12 +953,12 @@ class CityScapesDataset(data.Dataset):
         self.geo_boundaries_key_name = 'name_1'    
 
         # subregion boundaries shapefile (for global subregion analysis) from 
-        # https://gist.github.com/cmunns/76fb72646a68202e6bde#file-continents-json
-        with open("/Users/home/Downloads/continents.json") as f:
+        # https://drive.google.com/drive/folders/1ot9rCqeMW61z8uY-yXw30YI_DTUzeU9Z?usp=sharing
+        with open("/Users/home/Downloads/subregion_global.json") as f:
             self.subregion_boundaries = json.load(f)
 
         # name of key representing region name within the shapefile
-        self.subregion_boundaries_key_name = 'continent'
+        self.subregion_boundaries_key_name = 'subregion'
 
         # csv data for choropleth analysis 
         # CSV is comprised of 2 columns: 
