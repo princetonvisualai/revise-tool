@@ -179,7 +179,7 @@ def att_dis(dataloader, args):
     distances = [[[] for j in range(num_attrs)] for i in range(len(categories))]
     for i, (data, target) in enumerate(tqdm(dataloader)):
         attr = target[1]
-        anns = target[0]      
+        anns = target[0] 
         file_path = target[3]
         if len(attr) > 1:
             for index in range(len(attr[1])):

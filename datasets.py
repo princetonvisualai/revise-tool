@@ -522,7 +522,7 @@ class CoCoDataset(data.Dataset):
                     biggest_person = area
                     biggest_bbox = bbox
 
-        scene = self.scene_mapping.get('/n/fs/visualai-scr/'+file_path, None)
+        scene = self.scene_mapping.get(file_path, None)
         if biggest_bbox != 0 and image_id in self.attribute_data.keys():
             anns = [formatted_anns, [[self.attribute_data[image_id]], [biggest_bbox]], [0], file_path, scene]
         else:
