@@ -219,6 +219,9 @@ class TemplateDataset(data.Dataset):
         # List of all the labels
         self.categories = []
 
+        # Names of attribute values to analyze
+        self.attribute_names = ["Female", "Male"]
+
         # Maps from filepath to scenes
         # Can be set up by running AlexNet Places365 model by running the following command:
         # self.scene_mapping = setup_scenemapping(self, '[name of dataset]')
@@ -237,7 +240,7 @@ class TemplateDataset(data.Dataset):
         self.people_labels = []
 
         # Number of images from dataset that are female at index 0 and male at index 1 (optional, doesn't need to exist)
-        self.num_gender_images = [0, 0]
+        self.num_attribute_images = [0, 0]
         
     def __getitem__(self, index):
         image_id = self.image_ids[index]
@@ -255,8 +258,9 @@ class TemplateDataset(data.Dataset):
 
         #Note: bbox digits should be: x, y, width, height. all numbers are scaled to be between 0 and 1
         person_bbox = None # optional
+        #Note: gender should be in a list because attribute_based assumes each image can have more than 1 value
         gender = [None] # optional, we have used 0 for male and 1 for female when these labels exist (yes, this order is reversed from self.num_gender_images above)
-        gender_info = [gender, person_bbox] # optional
+        gender_info = [gender, [person_bbox]] # optional Note bbox should also be a list for the same reason mentioned above for gender
 
         country = None # optional
 
@@ -291,6 +295,7 @@ class OpenImagesDataset(data.Dataset):
         names = list(csv.reader(open('Data/OpenImages/class-descriptions-boxable.csv', newline='')))
         self.labels_to_names = {name[0]: name[1] for name in names}
         self.categories = list(self.labels_to_names.keys())
+        self.attribute_names = ["Female", "Male"]
 
         self.scene_mapping = NoneDict()
         if os.path.exists('dataloader_files/openimages_scene_mapping.pkl'):
@@ -327,7 +332,7 @@ class OpenImagesDataset(data.Dataset):
         if os.path.exists('dataloader_files/openimage_anns.pkl'):
             info = pickle.load(open('dataloader_files/openimage_anns.pkl', 'rb'))
             self.anns = info['anns']
-            self.num_gender_images = info['num_gender']
+            self.num_attribute_images = info['num_gender']
         else:
             with open('Data/OpenImages/train-annotations-bbox.csv', newline='') as csvfile:
                 data = list(csv.reader(csvfile))[1:]
@@ -342,7 +347,7 @@ class OpenImagesDataset(data.Dataset):
                     else:
                         self.anns[chunk[0]] = [new_ann]
 
-            self.num_gender_images = [0, 0]
+            self.num_attribute_images = [0, 0]
             men = ['/m/01bl7v', '/m/04yx4']
             women = ['/m/03bt1vf', '/m/05r655']
             for key in self.anns.keys():
@@ -367,16 +372,16 @@ class OpenImagesDataset(data.Dataset):
                             biggest_bbox = this_bbox
 
                 if m_presence > 0 and w_presence == 0:
-                    self.anns[key] = [self.anns[key], [[2], [biggest_bbox]], [0]]
-                    self.num_gender_images[1] += 1
-                elif w_presence > 0 and m_presence == 0:
                     self.anns[key] = [self.anns[key], [[1], [biggest_bbox]], [0]]
-                    self.num_gender_images[0] += 1
+                    self.num_attribute_images[1] += 1
+                elif w_presence > 0 and m_presence == 0:
+                    self.anns[key] = [self.anns[key], [[0], [biggest_bbox]], [0]]
+                    self.num_attribute_images[0] += 1
                 else:
                     self.anns[key] = [self.anns[key], [0], [0]]
             info = {}
             info['anns'] = self.anns
-            info['num_gender'] = self.num_gender_images
+            info['num_gender'] = self.num_attribute_images
             pickle.dump(info, open('dataloader_files/openimage_anns.pkl', 'wb'))
 
 class CoCoDataset(data.Dataset):
@@ -388,7 +393,7 @@ class CoCoDataset(data.Dataset):
         self.img_folder = 'Data/Coco/2014data/train2014'
         self.coco = COCO('Data/Coco/2014data/annotations/instances_train2014.json')
         gender_data = pickle.load(open('Data/Coco/2014data/bias_splits/train.data', 'rb'))
-        self.gender_info = {int(chunk['img'][15:27]): chunk['annotation'][0] for chunk in gender_data}
+        self.attribute_data = {int(chunk['img'][15:27]): chunk['annotation'][0] for chunk in gender_data}
 
         ids = list(self.coco.anns.keys())
         self.image_ids = list(set([self.coco.anns[this_id]['image_id'] for this_id in ids]))
@@ -399,7 +404,7 @@ class CoCoDataset(data.Dataset):
             self.labels_to_names[cat['id']] = cat['name']
 
         self.categories = list(self.labels_to_names.keys())
-
+        self.attribute_names = ["Female", "Male"]
         self.scene_mapping = NoneDict()
         if os.path.exists('dataloader_files/coco_scene_mapping.pkl'):
             self.scene_mapping = pickle.load(open('dataloader_files/coco_scene_mapping.pkl', 'rb'))
@@ -436,7 +441,7 @@ class CoCoDataset(data.Dataset):
         self.group_mapping = mapping # takes in label name, so from self.categories
 
         self.people_labels = [1] # instances of self.categories
-        self.num_gender_images = [6642, 16324]
+        self.num_attribute_images = [6642, 16324]
         
     def __getitem__(self, index):
         image_id = self.image_ids[index]
@@ -487,8 +492,8 @@ class CoCoDataset(data.Dataset):
                     biggest_bbox = bbox
 
         scene = self.scene_mapping.get(original_file_path, None)
-        if biggest_bbox != 0 and image_id in self.gender_info.keys():
-            anns = [formatted_anns, [[self.gender_info[image_id] + 1], [biggest_bbox]], [0], file_path, scene]
+        if biggest_bbox != 0 and image_id in self.attribute_data.keys():
+            anns = [formatted_anns, [[self.attribute_data[image_id]], [biggest_bbox]], [0], file_path, scene]
         else:
             anns = [formatted_anns, [0], [0], file_path, scene]
         return image, anns        
@@ -517,9 +522,9 @@ class CoCoDataset(data.Dataset):
                     biggest_person = area
                     biggest_bbox = bbox
 
-        scene = self.scene_mapping.get(file_path, None)
-        if biggest_bbox != 0 and image_id in self.gender_info.keys():
-            anns = [formatted_anns, [[self.gender_info[image_id] + 1], [biggest_bbox]], [0], file_path, scene]
+        scene = self.scene_mapping.get('/n/fs/visualai-scr/'+file_path, None)
+        if biggest_bbox != 0 and image_id in self.attribute_data.keys():
+            anns = [formatted_anns, [[self.attribute_data[image_id]], [biggest_bbox]], [0], file_path, scene]
         else:
             anns = [formatted_anns, [0], [0], file_path, scene]
 
@@ -569,7 +574,7 @@ class CoCoDatasetNoImages(data.Dataset):
         self.group_mapping = mapping # takes in label name, so from self.categories
 
         self.people_labels = [1] # instances of self.categories
-        self.num_gender_images = [6642, 16324]
+        self.num_attribute_images = [6642, 16324]
 
 class SUNDataset(data.Dataset):
 
@@ -816,6 +821,7 @@ class CelebADataset(data.Dataset):
                 self.image_ids.append(stripped_line[0])
         
         print("done with ids (1/4 dataset steps)")
+        self.attribute_names = ["Female", "Male"]
 
         # List of all the labels (e.g. Young, mustache)
         count = 0
@@ -847,7 +853,7 @@ class CelebADataset(data.Dataset):
         self.people_labels = []
         
         #Needs to exist for gender analysis
-        self.num_gender_images = [0, 0]
+        self.num_attribute_images = [0, 0]
         count = 0
         with open('Anno/list_attr_celeba.txt') as f:
             for line in f:
@@ -857,13 +863,13 @@ class CelebADataset(data.Dataset):
                     image_values = stripped_line[1:]
                     gender = int(image_values[20])
                     if gender > 0:
-                        self.num_gender_images[1] += 1
+                        self.num_attribute_images[1] += 1
                     else:
-                        self.num_gender_images[0] += 1
+                        self.num_attribute_images[0] += 1
                 count += 1
                 
         print("done with gender counting (4/4 dataset steps)")
-        print(self.num_gender_images)
+        print(self.num_attribute_images)
         
     def __getitem__(self, index):
         image_id = self.image_ids[index]

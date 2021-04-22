@@ -62,15 +62,20 @@ def att_siz(dataloader, args):
             detect_info = {}
     elif FACE_DETECT == 1:
         cascPath = "util_files/haarcascade_frontalface_default.xml"
-        #faceCascade = cv2.CascadeClassifier(cv2.data.haarcascades + cascPath)
-        faceCascade = cv2.CascadeClassifier(cascPath)
+        try:
+            faceCascade = cv2.CascadeClassifier(cv2.data.haarcascades + cascPath)
+        except AttributeError:
+            faceCascade = cv2.CascadeClassifier(cascPath)
+        
     for i, (data, target) in enumerate(tqdm(dataloader)):
         attribute = target[1]
         # Only look at image if there is an attribute to analyze (Note attribute require a bbox around the person or thing to analyze)
         if len(attribute)> 1:
             shape = list(data.size())[1:]
             bboxes = attribute[1]
-            for bbox in bboxes:
+            for index in range(len(bboxes)):
+                bbox = bboxes[index]
+                att = attribute[0][index]
                 bbox_adjust = np.array([bbox[0]*shape[1], bbox[1]*shape[1], bbox[2]*shape[0], bbox[3]*shape[0]])
                 pixel_size = (bbox_adjust[1]-bbox_adjust[0])*(bbox_adjust[3]-bbox_adjust[2])
                 size = (bbox[1]-bbox[0])*(bbox[3]-bbox[2])
@@ -91,13 +96,23 @@ def att_siz(dataloader, args):
                 elif FACE_DETECT == 1:
                     image = cv2.imread(target[3])
                     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-                    faces = faceCascade.detectMultiScale(
-                    gray,
-                    scaleFactor=1.1,
-                    minNeighbors=5,
-                    #minSize=(30, 30),
-                    flags = cv2.CASCADE_SCALE_IMAGE
-                    )
+                    try:
+                        faces = faceCascade.detectMultiScale(
+                        gray,
+                        scaleFactor=1.1,
+                        minNeighbors=5,
+                        #minSize=(30, 30),
+                        flags = cv2.CASCADE_SCALE_IMAGE
+                        )
+                    except cv2.error as e:
+                        faceCascade = cv2.CascadeClassifier(cascPath)
+                        faces = faceCascade.detectMultiScale(
+                        gray,
+                        scaleFactor=1.1,
+                        minNeighbors=5,
+                        #minSize=(30, 30),
+                        flags = cv2.CASCADE_SCALE_IMAGE
+                        )
                     yes_face = False
                     if len(faces) > 0:
                         yes_face = True
@@ -106,15 +121,12 @@ def att_siz(dataloader, args):
                 if not yes_face or pixel_size < 1000.:
                     scene_group = target[4]
                     if not yes_face:
-                        for att in attribute[0]:
-                            no_faces[att].append((size, pixel_size, scene_group))
+                        no_faces[att].append((size, pixel_size, scene_group))
                     elif pixel_size < 1000.:        
-                        for att in attribute[0]:
-                            tiny_sizes[att].append((size, scene_group))
+                        tiny_sizes[att].append((size, scene_group))
                     continue
-                for att in attribute[0]:
-                    sizes[att].append(size)
-                    distances[att].append(distance)
+                sizes[att].append(size)
+                distances[att].append(distance)
 
     if FACE_DETECT == 0:
         pickle.dump(detect_info, open('{}_rekognitioninfo.pkl'.format(args.folder), 'wb'))
