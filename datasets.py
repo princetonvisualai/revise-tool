@@ -24,6 +24,7 @@ import numpy as np
 from collections import OrderedDict 
 nlp = spacy.load("en_core_web_lg")
 import json
+from tqdm import tqdm 
 
 def collate_fn(batch):
     return batch[0]
@@ -64,8 +65,8 @@ def setup_scenemapping(dataset, name):
     ])
 
     scene_mapping = {}
-
-    for i, (img, target) in enumerate(dataloader):
+    print("Classify the scenes for each image")
+    for i, (img, target) in enumerate(tqdm(dataloader)):
         filepath = target[3]
         input_img = Variable(center_crop(img).unsqueeze(0)).to(device)
         logit = model.forward(input_img)
@@ -385,10 +386,11 @@ class CoCoDataset(data.Dataset):
         self.transform = transform
         
         self.supercategories_to_names = DEFAULT_GROUPINGS_TO_NAMES
-        self.img_folder = 'Data/Coco/2014data/train2014'
-        self.coco = COCO('Data/Coco/2014data/annotations/instances_train2014.json')
-        gender_data = pickle.load(open('Data/Coco/2014data/bias_splits/train.data', 'rb'))
+        self.img_folder = '/n/fs/visualai-scr/Data/Coco/2014data/val2014'
+        self.coco = COCO('/n/fs/visualai-scr/Data/Coco/2014data/annotations/instances_val2014.json')
+        gender_data = pickle.load(open('/n/fs/visualai-scr/Data/Coco/2014data/bias_splits/train.data', 'rb'))
         self.gender_info = {int(chunk['img'][15:27]): chunk['annotation'][0] for chunk in gender_data}
+        self.attribute_data = 'instances_val2014.csv'
 
         ids = list(self.coco.anns.keys())
         self.image_ids = list(set([self.coco.anns[this_id]['image_id'] for this_id in ids]))
