@@ -72,9 +72,8 @@ def att_siz(dataloader, args):
         # Only look at image if there is an attribute to analyze (Note attribute require a bbox around the person or thing to analyze)
         if len(attribute)> 1:
             shape = list(data.size())[1:]
-            bboxes = attribute[1]
-            for index in range(len(bboxes)):
-                bbox = bboxes[index]
+            for index in range(len(attribute[1])):
+                bbox = attribute[1][index]
                 att = attribute[0][index]
                 bbox_adjust = np.array([bbox[0]*shape[1], bbox[1]*shape[1], bbox[2]*shape[0], bbox[3]*shape[0]])
                 pixel_size = (bbox_adjust[1]-bbox_adjust[0])*(bbox_adjust[3]-bbox_adjust[2])

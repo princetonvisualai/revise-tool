@@ -256,11 +256,11 @@ class TemplateDataset(data.Dataset):
         image = Image.open(file_path).convert("RGB")
         image = self.transform(image)
 
-        #Note: bbox digits should be: x, y, width, height. all numbers are scaled to be between 0 and 1
-        person_bbox = None # optional
-        #Note: gender should be in a list because attribute_based assumes each image can have more than 1 value
+        #Note: person_bbox should be a list (e.g. [bbox1, bbox2]) where for each bbox digits should be: x, y, width, height. all numbers are scaled to be between 0 and 1
+        person_bbox = [None] # optional
+        #Note: gender should be in a list because attribute_based assumes each image can have more than 1 value, e.g. [attribute1, attribute2]
         gender = [None] # optional, we have used 0 for male and 1 for female when these labels exist (yes, this order is reversed from self.num_gender_images above)
-        gender_info = [gender, [person_bbox]] # optional Note bbox should also be a list for the same reason mentioned above for gender
+        gender_info = [gender, person_bbox] # optional Note bbox should also be a list for the same reason mentioned above for gender, e.g. [attribute1, attribute2], [bbox1, bbox2])
 
         country = None # optional
 
