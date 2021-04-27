@@ -942,6 +942,8 @@ class CityScapesDataset(data.Dataset):
         self.transform = transform
         self.img_folder = '/Users/home/Desktop/research/data/cityscapes/gtFine_trainvaltest/gtFine/train'
 
+        self.geography_info_type = "GPS_LABEL" # GPS_LABEL or COUNTRY_LABEL or REGION_LABEL
+
         # directory storing gps information
         self.gps_folder = '/Users/home/Desktop/research/data/cityscapes/vehicle_trainvaltest/vehicle/train'
 
