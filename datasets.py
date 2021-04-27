@@ -676,6 +676,8 @@ class ImagenetDataset(data.Dataset):
 class YfccPlacesDataset(data.Dataset):
     
     def __init__(self, transform, metric='obj_cnt'):
+        self.geography_info_type = "COUNTRY_LABEL" # GPS_LABEL or COUNTRY_LABEL or REGION_LABEL
+
         self.transform = transform
         
         self.img_folder = 'Data/YFCC100m/data/images'
