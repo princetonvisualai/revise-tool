@@ -49,11 +49,11 @@ def geo_ctr(dataloader, args):
     if (dataloader.dataset.geography_info_type == "GPS_LABEL"):
         print("redirecting to geo_ctr_gps()...")
         return geo_ctr_gps(dataloader, args)
-    if (dataloader.dataset.geography_info_type == "REGION_LABEL"):
+    if (dataloader.dataset.geography_info_type == "STRING_FORMATTED_LABEL" and dataloader.dataset.geography_label_string_type == "REGION_LABEL"):
        print("redirecting to geo_ctr_region()...")
        return geo_ctr_region(dataloader, args)
     
-    print("starting geo_ctr()...")
+    print("starting geo_ctr() for country label format")
     counts = {}
 
     for i, (data, target) in enumerate(tqdm(dataloader)):
@@ -173,6 +173,9 @@ def geo_tag(dataloader, args):
     if (dataloader.dataset.geography_info_type == "GPS_LABEL"):
         print("redirecting to geo_tag_gps()...")
         return geo_tag_gps(dataloader, args)
+    if (dataloader.dataset.geography_info_type == "STRING_FORMATTED_LABEL" and dataloader.dataset.geography_label_string_type == "REGION_LABEL"):
+        print("redirecting to geo_tag_region()...")
+        return geo_tag_region(dataloader, args)
     country_tags = {}
     tag_to_subregion_features = {}
     categories = dataloader.dataset.categories
@@ -301,7 +304,7 @@ def geo_tag_gps(dataloader, args):
     info_stats['tag_to_region_features'] = tag_to_region_features
     pickle.dump(info_stats, open("results/{}/geo_tag_gps.pkl".format(args.folder), "wb"))
 
-# private function called from geo_tag() if dataset is of REGION_LABEL form
+# private function called from geo_tag() if dataset is of STRING_FORMATTED_LABEL + REGION_LABEL form
 def geo_tag_region(dataloader, args):
     # map from a region name to a list whose value at index i represents count of category
     # i 

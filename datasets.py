@@ -25,6 +25,7 @@ from collections import OrderedDict
 nlp = spacy.load("en_core_web_lg")
 import json
 from tqdm import tqdm 
+import pycountry
 
 def collate_fn(batch):
     return batch[0]
@@ -681,7 +682,7 @@ class ImagenetDataset(data.Dataset):
 class YfccPlacesDataset(data.Dataset):
     
     def __init__(self, transform, metric='obj_cnt'):
-        self.geography_info_type = "COUNTRY_LABEL" # GPS_LABEL or COUNTRY_LABEL or REGION_LABEL
+        self.geography_info_type = "STRING_FORMATTED_LABEL" # GPS_LABEL or STRING_FORMATTED_LABEL
 
         self.transform = transform
         
@@ -719,6 +720,26 @@ class YfccPlacesDataset(data.Dataset):
             random.shuffle(info['alllang'])
             pickle.dump(info, open('dataloader_files/yfcc_anns.pkl', 'wb'))
 
+        # Distinguish between global geography labels vs region geography labels
+        country_check_arr = set()
+        for image_id in self.image_ids:
+            if len(country_check_arr) > 2:
+                # break if more than 2 distinct potential "countries"
+                break
+            country = self.with_country.loc[self.with_country['photoid'] == int(image_id)]['placename'].values
+            if len(country) > 1:
+                country = country[list(country).index('United+Kingdom')]
+            else:
+                country = country[0]
+            country_check_arr.add(country)
+
+        self.geography_label_string_type = "COUNTRY_LABEL"
+        for potential_country in country_check_arr:
+            try:
+                pycountry.countries.search_fuzzy(potential_country.replace('+', ' '))
+            except LookupError:
+                geography_label_string_type = "REGION_LABEL"
+                break
 
         class KeyDict(dict):
             def __missing__(self, key):
@@ -950,7 +971,9 @@ class CityScapesDataset(data.Dataset):
         self.transform = transform
         self.img_folder = '/Users/home/Desktop/research/data/cityscapes/gtFine_trainvaltest/gtFine/train'
 
-        self.geography_info_type = "GPS_LABEL" # GPS_LABEL or COUNTRY_LABEL or REGION_LABEL
+        self.geography_info_type = "GPS_LABEL" # GPS_LABEL or STRING_FORMATTED_LABEL
+
+        self.geography_label_string_type = None # auto initialized to "COUNTRY_LABEL" or "REGION_LABEL" if geography_info_type is "STRING_FORMATTED_LABEL"
 
         # directory storing gps information
         self.gps_folder = '/Users/home/Desktop/research/data/cityscapes/vehicle_trainvaltest/vehicle/train'
