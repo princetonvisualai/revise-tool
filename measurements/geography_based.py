@@ -49,7 +49,7 @@ def geo_ctr(dataloader, args):
     if (dataloader.dataset.geography_info_type == "GPS_LABEL"):
         print("redirecting to geo_ctr_gps()...")
         return geo_ctr_gps(dataloader, args)
-   if (dataloader.dataset.geography_info_type == "REGION_LABEL"):
+    if (dataloader.dataset.geography_info_type == "REGION_LABEL"):
        print("redirecting to geo_ctr_region()...")
        return geo_ctr_region(dataloader, args)
     
@@ -160,7 +160,8 @@ def geo_ctr_gps(dataloader, args):
     counts_gps['region_to_id'] = region_to_id_map
     counts_gps['id_to_gps'] = id_to_gps_map
     counts_gps['id_to_region'] = id_to_region_map
-    if len(subregion_to_id_map.keys) > 2:
+    # only create mapping if there are at least 2 unique subregions
+    if len(subregion_to_id_map.keys()) >= 2:
         counts_gps['subregion_to_id'] = subregion_to_id_map
         counts_gps['id_to_subregion'] = id_to_subregion_map
     else:
@@ -262,7 +263,9 @@ def geo_tag_gps(dataloader, args):
     for i, (data, target) in enumerate(tqdm(dataloader)):
         if data is None:
             continue
-        region_name = id_to_region[target[3]]
+        region_name = id_to_region.get(target[3], None)
+        if region_name is None:
+            continue
         anns = target[0]
         filepath = target[3]
         this_categories = list(set([categories.index(ann['label']) for ann in anns]))
