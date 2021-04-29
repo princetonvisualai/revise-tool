@@ -728,11 +728,11 @@ class YfccPlacesDataset(data.Dataset):
             content = f.readlines()
         self.categories = [x.strip() for x in content]
 
-        #self.scene_mapping = NoneDict()
-        #if os.path.exists('dataloader_files/yfcc_scene_mapping.pkl'):
-        #    self.scene_mapping = pickle.load(open('dataloader_files/yfcc_scene_mapping.pkl', 'rb'))
-        #else:
-        #    setup_scenemapping(self, 'yfcc')
+        self.scene_mapping = NoneDict()
+        if os.path.exists('dataloader_files/yfcc_scene_mapping.pkl'):
+           self.scene_mapping = pickle.load(open('dataloader_files/yfcc_scene_mapping.pkl', 'rb'))
+        else:
+           setup_scenemapping(self, 'yfcc')
 
         self.group_mapping = None
         self.people_labels = []
