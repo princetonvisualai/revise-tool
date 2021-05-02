@@ -173,7 +173,7 @@ def geo_tag(dataloader, args):
     if (dataloader.dataset.geography_info_type == "GPS_LABEL"):
         print("redirecting to geo_tag_gps()...")
         return geo_tag_gps(dataloader, args)
-    if (dataloader.dataset.geography_info_type == "STRING_FORMATTED_LABEL" and dataloader.dataset.geography_label_string_type == "REGION_LABEL"):
+    elif (dataloader.dataset.geography_info_type == "STRING_FORMATTED_LABEL" and dataloader.dataset.geography_label_string_type == "REGION_LABEL"):
         print("redirecting to geo_tag_region()...")
         return geo_tag_region(dataloader, args)
     country_tags = {}
