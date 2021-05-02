@@ -62,16 +62,20 @@ def att_siz(dataloader, args):
             detect_info = {}
     elif FACE_DETECT == 1:
         cascPath = "util_files/haarcascade_frontalface_default.xml"
-        #faceCascade = cv2.CascadeClassifier(cv2.data.haarcascades + cascPath)
-        faceCascade = cv2.CascadeClassifier(cascPath)
+        try:
+            faceCascade = cv2.CascadeClassifier(cv2.data.haarcascades + cascPath)
+        except AttributeError:
+            faceCascade = cv2.CascadeClassifier(cascPath)
+        
     for i, (data, target) in enumerate(tqdm(dataloader)):
         attribute = target[1]
         file_path = target[3]
         # Only look at image if there is an attribute to analyze (Note attribute require a bbox around the person or thing to analyze)
         if len(attribute)> 1:
             shape = list(data.size())[1:]
-            bboxes = attribute[1]
-            for idx, bbox in enumerate(bboxes):
+            for index in range(len(attribute[1])):
+                bbox = attribute[1][index]
+                att = attribute[0][index]
                 bbox_adjust = np.array([bbox[0]*shape[1], bbox[1]*shape[1], bbox[2]*shape[0], bbox[3]*shape[0]])
                 pixel_size = (bbox_adjust[1]-bbox_adjust[0])*(bbox_adjust[3]-bbox_adjust[2])
                 size = (bbox[1]-bbox[0])*(bbox[3]-bbox[2])
@@ -92,13 +96,23 @@ def att_siz(dataloader, args):
                 elif FACE_DETECT == 1:
                     image = cv2.imread(target[3])
                     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-                    faces = faceCascade.detectMultiScale(
-                    gray,
-                    scaleFactor=1.1,
-                    minNeighbors=5,
-                    #minSize=(30, 30),
-                    flags = cv2.CASCADE_SCALE_IMAGE
-                    )
+                    try:
+                        faces = faceCascade.detectMultiScale(
+                        gray,
+                        scaleFactor=1.1,
+                        minNeighbors=5,
+                        #minSize=(30, 30),
+                        flags = cv2.CASCADE_SCALE_IMAGE
+                        )
+                    except cv2.error as e:
+                        faceCascade = cv2.CascadeClassifier(cascPath)
+                        faces = faceCascade.detectMultiScale(
+                        gray,
+                        scaleFactor=1.1,
+                        minNeighbors=5,
+                        #minSize=(30, 30),
+                        flags = cv2.CASCADE_SCALE_IMAGE
+                        )
                     yes_face = False
                     if len(faces) > 0:
                         yes_face = True
@@ -107,14 +121,12 @@ def att_siz(dataloader, args):
                 if not yes_face or pixel_size < 1000.:
                     scene_group = target[4]
                     if not yes_face:
-                        for att in attribute[0]:
-                            no_faces[att].append(((size, pixel_size, scene_group), (file_path, idx)))
+                        no_faces[att].append(((size, pixel_size, scene_group), (file_path, idx)))
                     elif pixel_size < 1000.:        
-                        for att in attribute[0]:
-                            tiny_sizes[att].append(((size, scene_group), (file_path, idx)))
+                        tiny_sizes[att].append(((size, scene_group), (file_path, idx)))
                     continue
-                sizes[attribute[0][idx]].append((size, (file_path, idx)))
-                distances[attribute[0][idx]].append((distance, (file_path, idx)))
+                sizes[att].append((size, (file_path, idx)))
+                distances[att].append((distance, (file_path, idx)))
 
     if FACE_DETECT == 0:
         pickle.dump(detect_info, open('{}_rekognitioninfo.pkl'.format(args.folder), 'wb'))
@@ -159,10 +171,8 @@ def att_cnt(dataloader, args):
                     else:
                         for att in attribute[0]:
                             counts[att]["{0}-{1}".format(cat_b, cat_a)] += 1
-    stats = {}
-    stats['counts'] = counts
-    stats['file_paths'] = file_paths
-    pickle.dump(stats, open("results/{}/att_cnt.pkl".format(args.folder), "wb"))
+
+    pickle.dump(counts, open("results/{}/att_cnt.pkl".format(args.folder), "wb"))
 
 def att_dis(dataloader, args):
     categories = dataloader.dataset.categories
@@ -171,7 +181,7 @@ def att_dis(dataloader, args):
     distances = [[[] for j in range(num_attrs)] for i in range(len(categories))]
     for i, (data, target) in enumerate(tqdm(dataloader)):
         attr = target[1]
-        anns = target[0]      
+        anns = target[0] 
         file_path = target[3]
         if len(attr) > 1:
             for index in range(len(attr[1])):
@@ -190,9 +200,9 @@ def att_dis(dataloader, args):
                         prev_calc_dist = prev[0] / np.sqrt(prev[1]*prev[2])
                         calc_dist = distance / np.sqrt(person_area*ann_area)
                         if calc_dist < prev_calc_dist:
-                            distances[categories.index(ann['label'])][value][-1] = (distance, person_area, ann_area, file_path, j, index)
+                            distances[categories.index(ann['label'])][value][-1] = (distance, person_area, ann_area, file_path, j)
                     else:
-                        distances[categories.index(ann['label'])][value].append((distance, person_area, ann_area, file_path, j, index))
+                        distances[categories.index(ann['label'])][value].append((distance, person_area, ann_area, file_path, j))
                         seen_instances.append(categories.index(ann['label']))
 
     pickle.dump(distances, open("results/{}/att_dis.pkl".format(args.folder), "wb"))
