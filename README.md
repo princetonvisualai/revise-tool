@@ -81,7 +81,7 @@ geo_tag: Counts the number of tags from each region, as well as extracts AlexNet
 
 geo_lng: Counts the languages that make up the image tags, and whether or not they are local to the country the image is from. Also extracts image-level features to compare if locals and tourist portray a country differently
 
-Note: Geography-Based analyses require a mapping from images to location. The 2 primary ways we've encountered these mappings in existing datasets are geography labels (ie. String formatted locations like 'Manhattan'), and GPS labels (latitude and longitude coordinate pairs). Our analyses supports both types of geography mappings. Namely, the user should specify in their dataset class the `geography_info_type` to be one of the following:
+Note: Geography-Based analyses require a mapping from images to location. The 2 formats of geography annotations supported are (ie. String formatted locations like 'Manhattan'), and GPS labels (latitude and longitude coordinate pairs). Namely, the user should specify in their dataset class the `geography_info_type` to be one of the following:
 - 'GPS_LABEL': datasets with mappings from image to GPS coordinates
 - 'STRING_FORMATTED_LABEL', datasets with mappings from image to string-formatted labels
 
