@@ -10,7 +10,7 @@ import cv2
 from operator import itemgetter
 
 
-NUM_EXS=3
+NUM_EXS=10
 
 def validate_dataset(dataset): 
 
@@ -24,35 +24,31 @@ def validate_dataset(dataset):
     except Exception as e: 
         print('ERROR: Initialization failed before testing:', e)
         sys.exit()
-
-    # testing img_folder 
+    
+    # testing image_ids
     try: 
-        if os.path.isdir(ds.img_folder):
-            print('\n ---- Image folder identified as ----') 
-            print(ds.img_folder, '\n')
-            cmd = 'ls -1 ' + ds.img_folder + ' | wc -l'
-            print('---- Total number of objects found in image folder ----')
-            print(str(os.popen(cmd).read()).strip(), '\n')
-        else: 
-            print('---- Image folder not detected ---- \n')
+        ds.image_ids 
     except AttributeError: 
-        pass
-
-    # testing image_ids and printing images 
+        print('ERROR: self.image_ids is a required field.')  
     if not isinstance(ds.image_ids, list): 
-        print('---- Image_ids must be type: list ----')
+        print('---- Image_ids must be of type: list ----')
         print('ERROR: Currently of type:', type(ds.image_ids))
     else:
-        print('--- Total number of image_ids ---')
+        print('\n--- Number of images ---')
         print(str(len(ds.image_ids)), '\n')
         rand_inds = random.sample(  range(len(ds.image_ids) - 1), NUM_EXS  )
 
-    # testing labels 
+
+    # testing labels_to_names
+    try: 
+        ds.labels_to_names
+    except AttributeError: 
+        print('ERROR: self.labels_to_names is a required field.')
     if not isinstance(ds.labels_to_names, dict): 
         print('---- Labels_to_names must be type: dict ---') 
         print('ERROR: Currently of type:', type(ds.labels_to_names), '\n')
     else: 
-        print('--- Total number of label mappings ---')
+        print('--- Total number of labels in the dataset ---')
         print( str(len(ds.labels_to_names)), '\n')
         if len(ds.labels_to_names) != 0:
             print('---', str(NUM_EXS), 'random examples of human-interpretable labels in dataset ---' )
@@ -61,13 +57,16 @@ def validate_dataset(dataset):
                 print(  list(ds.labels_to_names.items())[rand_ind][1]   )
             print('\n')
 
+
     # testing categories
+    try: 
+        ds.categories
+    except AttributeError: 
+        print('ERROR: self.categories is a required field.')
     if not isinstance(ds.categories, list):
         print('--- Categories must be type: list ---')
         print('ERROR: Currently of type:', type(ds.categories), '\n')
-    else: 
-        print('---- Total number of categories in dataset ----')
-        print(str(len(ds.categories)), '\n')
+
 
     # testing scene mappings 
     try:
@@ -75,45 +74,109 @@ def validate_dataset(dataset):
             print('--- Scene_mapping must be type: dict ---')
             print('ERROR: Currently of type:', type(ds.scene_mapping), '\n')
     except AttributeError:
-       print('--- Scene_mapping currently not set up for use ---')
-       print('Please refer to dataloader documentation in "datasets.py" for advice on setup. \n')
-    
-    # testing __len__
-    print('--- __len__ method returns ----')
-    print(ds.__len__())
-    if ds.__len__() != len(ds.image_ids): 
-        print('ERROR: __len__() should return:', len(ds.image_ids))
-    print('\n')
+       pass 
 
-    # testing __getitem__
-    images_list = os.listdir(ds.img_folder)
-    rand_inds = random.sample(  range(len(images_list) - 1), NUM_EXS  )
-    print('--- Pulling images using these random indices ---')
-    print(rand_inds, '\n')
+
+    # testing supercategories_to_names
+    try: 
+        if not isinstance(ds.supercategories_to_names, dict): 
+            print('ERROR: self.supercategories_to_names must be type: dict \n')
+    except AttributeError:
+        print('ERROR: self.supercategories_to_names is a required field.')
+        print('Default to DEFAULT_GROUPINGS_TO_NAMES\n')
+
+    
+    # testing __len__:
+    try: 
+        ds.__len__()
+        if ds.__len__() != len(ds.image_ids):
+            print('ERROR: self.__len__() must be equal to length of self.image_ids')
+            print('self.__len__() returns', ds.__len__(), '/ length of self.image_ids =', len(ds.image_ids), '\n')
+    except AttributeError: 
+        print('ERROR: self.__len__() is a required method.\n')
+ 
+
+    # testing __getitem__ and from_path
+    rand_ind = random.randint(0, ds.__len__()-1)
+    try: 
+        x = ds.__getitem__(rand_ind)
+    except AttributeError: 
+        print('ERROR: self.__getitem___() is a required method.\n')
+   
+    x = ds.__getitem__(rand_ind)
+    if len(x) != 2: 
+        print('ERROR: self.__getitem__() must return a tuple of length: 2')
+        print('Return value should be in form (image, annotations)\n')
+        sys.exit()
+    img, anns = x
+    if not isinstance(anns, list): 
+        print('ERROR: Annotations must be of type: list\n') 
+        sys.exit()
+    if len(anns) != 5:
+        print('ERROR: self.__getitem__() should return annotations of length: 5')
+        print('Annotations must be a list containing [image_anns, gender_info, [country, lat_lng], file_path, scene_group]\n')
+        sys.exit()
+    labels, att, geo, fp, scn = anns
+    if len(labels) > 1: 
+        if not isinstance(labels[0], dict) or labels[0].get('label', None)==None: 
+            print('ERROR: image_anns must be a list of dicts. If there are >0 dicts, must contain keyword \'label\' \n')
+    for label in labels: 
+        wrong_bbox=None
+        if label.get('bbox', None): 
+            for coord in label['bbox']: wrong_bbox=label['bbox'] if (coord<0 or coord>1) else None
+    if wrong_bbox: print('ERROR: All bounding box numbers must be scaled between 0 and 1. Got bounding box:', wrong_bbox, '\n')
+    if (len(att) != 1 and len(att) != 2) or (not isinstance(att[0], int)): 
+        print('ERROR: gender_info must be a list of length: 1 in the form [None] or [int] or length: 2 in the form [int, [double, double, double, double]]\n')
+        print('Got:', att)
+    if att[0] != 0 and att[0]!= 1: 
+        print('ERROR: gender annotations should be 0 for male, 1 for female, or None. Got value:', att[0], '\n')
+    if len(geo) !=1 and len(geo) != 2: 
+        print('ERROR: geography info must be a list of length: 1 in the form [None] or [country] or length: 2 in the form [country, lat_lng] \n')
+    if len(geo) ==2 and (not isinstance(geo[1], dict) or len(geo[1])!= 2 or not geo[1].get('lat') or not geo[1].get('lng')): 
+        print('ERROR: lat_lng in [country, lat_lng] must be of type:dict with 2 keys: \'lat\' and \'lng\' \n')
+     
+
+    rand_inds = random.sample(  range(ds.__len__() - 1), NUM_EXS  )
     print('--- View folder "tester_script_out" for images ----')
     for i in range(NUM_EXS):
         img, anns = ds.__getitem__(rand_inds[i]) 
         img = img.permute(1, 2, 0).numpy()
-        cv2.imwrite('tester_script_out/example_' + str(i) + '.jpg', img) #need to generalize 
-        print('-- sample annotations for example_' + str(i) + '.jpg in tester_script_out --')
-        try: 
-            labels, attribute, geography, filepath, scene = anns
-            for label in labels: 
-                curr_label = ds.labels_to_names.get(label['label'], label['label']) if len(ds.labels_to_names)!=0 else label['label']
-                print('Label:', curr_label + ', bbox: ' + str(label['bbox'])) if label.get('bbox', None) else print('Label:', label['label'])
-            for att in attribute: 
-                print('Attribute:', att)
-            for geo in geography: 
-                print('Geography:', geo)
-            print('Filepath:', filepath)
-            print('Scene group:', scene)
-        except AttributeError, IndexError, TypeError: 
-            print('ERROR: image_anns should be of type: dict, with key \'label\' ') 
-        except ValueError: 
-            print('ERROR: Annotations list should be of length 5.')
-            print('Annotations should be in form [image_anns, gender_info, [country, lat_lng], file_path, scene_group]')
-            print(anns)
+        cv2.imwrite('tester_script_out/example_' + str(i) + '.jpg', img)                 #need to generalize 
+        print('-- sample annotations for example_' + str(i) + '.jpg in tester_script_out ---') 
+
+        labels, attribute, geography, filepath, scene = anns
+
+        if len(labels) == 0: 
+            print('Label: No object annotations for this image')
+        for label in labels: 
+            curr_label = ds.labels_to_names.get(label['label'], label['label']) if len(ds.labels_to_names)!=0 else label['label']
+            print('Label:', str(curr_label) + ', bbox: ' + str(label['bbox'])) if label.get('bbox', None) else print('Label:', label['label'])
+
+        if not attribute or not attribute[0]: curr_att='No attribute annotation for this image'
+        elif attribute[0]==0: curr_att='Male'
+        elif attribute[0]==1: curr_att='Female'
+        else: curr_att='ERROR: Attribute annotation should be 0, 1, or None. Got:' + str(attribute[0])
+        print('Attribute:', curr_att + ', bbox: ' + str(attribute[1])) if len(attribute)==2 else print('Attribute:', curr_att)
+
+        for geo in geography: 
+            print('Geography:', geo) if geo else print('Geography: No geography annotations for this image')
+
+        print('Filepath:', filepath)
+
+        if not scene or not scene[0]: 
+            print('Scene group: No scene annotations for this image')
+        else:
+            try: 
+                for scn in scene: 
+                    scn_str = ds.scene_mapping.get(scn, scn)
+                    print('Scene group:', scn_str)
+            except AttributeError: 
+                print('Scene group:', scene)
+                print('WARNING: Scene_mapping is a recommended field if using scene annotations.')
         print('\n')
+
+
+
 
 if __name__ == "__main__": 
     if len(sys.argv) != 2: 
