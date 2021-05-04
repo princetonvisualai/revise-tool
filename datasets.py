@@ -409,7 +409,7 @@ class CoCoDataset(data.Dataset):
         self.attribute_names = ["Female", "Male"]
         self.scene_mapping = NoneDict()
 
-        # If attribute is ordinal, set self.ordinal = True and define self.axis = [integers with indexed order of attributes]
+        # If attribute is ordinal (increases or decreases along an axis i.e. skin tone/age), set self.ordinal = True and define self.axis = [integers with indexed order of attributes]
         self.ordinal = False
         self.axis = []
 
