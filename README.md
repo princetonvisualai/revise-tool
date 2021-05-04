@@ -63,15 +63,15 @@ obj_scn: Counts overall scenes, scene-supercategory cooccurrences, scene-instanc
 
 ### Attribute-Based
 
-att_siz: Gets the size of the person and distance from center, as well as if a face is detected. 
+att_siz: Gets the size of the person and distance from center, as well as if a face is detected. Performs pairwise comparisons to find the largest/furthest person instances.
 
-att_cnt: Counts how often each attribute occurs with an instance and instance pair.
+att_cnt: Counts how often each attribute occurs with an instance and instance pair. Performs pairwise comparisons to test significance of count differences.
 
-att_dis: Calculates the distance each attribute is from each object.
+att_dis: Calculates the distance each attribute is from each object. Runs OvR (One-vs-Rest) analysis to find the attribute that is furthest/closest from an object.
 
-att_clu: Gets scene-level and cropped object-level features per object class for each attribute.
+att_clu: Gets scene-level and cropped object-level features per object class for each attribute. Runs OvR analysis to find the most linearly seperable attribute.
 
-att_scn: Counts the types of scenes each attribute occurs with.
+att_scn: Counts the types of scenes each attribute occurs with. 
 
 (Note: To analyze an attribute along an ordinal axis, define boolean "self.ordinal" and array "self.axis" in the dataset class)
 

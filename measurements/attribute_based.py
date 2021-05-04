@@ -121,12 +121,12 @@ def att_siz(dataloader, args):
                 if not yes_face or pixel_size < 1000.:
                     scene_group = target[4]
                     if not yes_face:
-                        no_faces[att].append(((size, pixel_size, scene_group), (file_path, idx)))
+                        no_faces[att].append(((size, pixel_size, scene_group), (file_path, i)))
                     elif pixel_size < 1000.:        
-                        tiny_sizes[att].append(((size, scene_group), (file_path, idx)))
+                        tiny_sizes[att].append(((size, scene_group), (file_path, i)))
                     continue
-                sizes[att].append((size, (file_path, idx)))
-                distances[att].append((distance, (file_path, idx)))
+                sizes[att].append((size, (file_path, i)))
+                distances[att].append((distance, (file_path, i)))
 
     if FACE_DETECT == 0:
         pickle.dump(detect_info, open('{}_rekognitioninfo.pkl'.format(args.folder), 'wb'))
@@ -144,7 +144,6 @@ def att_cnt(dataloader, args):
     num_attrs = len(dataloader.dataset.attribute_names)
 
     counts = [{} for i in range(num_attrs)]
-    file_paths = [[] for i in range(num_attrs)]
 
     for i in range(len(dataloader.dataset.categories)):
         for a in range(num_attrs):
@@ -157,7 +156,6 @@ def att_cnt(dataloader, args):
         attribute = target[1]
         anns = target[0]
         if len(attribute) > 1:
-            file_paths.append(target[3])
             categories = list(set([ann['label'] for ann in anns]))
             for a in range(len(categories)):
                 cat_a = dataloader.dataset.categories.index(categories[a])
@@ -200,9 +198,9 @@ def att_dis(dataloader, args):
                         prev_calc_dist = prev[0] / np.sqrt(prev[1]*prev[2])
                         calc_dist = distance / np.sqrt(person_area*ann_area)
                         if calc_dist < prev_calc_dist:
-                            distances[categories.index(ann['label'])][value][-1] = (distance, person_area, ann_area, file_path, j)
+                            distances[categories.index(ann['label'])][value][-1] = (distance, person_area, ann_area, file_path, j, index)
                     else:
-                        distances[categories.index(ann['label'])][value].append((distance, person_area, ann_area, file_path, j))
+                        distances[categories.index(ann['label'])][value].append((distance, person_area, ann_area, file_path, j, index))
                         seen_instances.append(categories.index(ann['label']))
 
     pickle.dump(distances, open("results/{}/att_dis.pkl".format(args.folder), "wb"))
@@ -290,7 +288,7 @@ def att_scn(dataloader, args):
         attribute = target[1]
         anns = target[0]
         top_scene = target[4]
-        if len(attribute) > 1:
+        if len(attribute) > 1 and top_scene is not None:
             for scene in top_scene:
                 for att in attribute[0]:
                     scenes_per[scene][att] += 1
