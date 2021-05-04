@@ -25,6 +25,7 @@ from collections import OrderedDict
 nlp = spacy.load("en_core_web_lg")
 import json
 from tqdm import tqdm 
+import pycountry
 
 def collate_fn(batch):
     return batch[0]
@@ -681,6 +682,8 @@ class ImagenetDataset(data.Dataset):
 class YfccPlacesDataset(data.Dataset):
     
     def __init__(self, transform, metric='obj_cnt'):
+        self.geography_info_type = "STRING_FORMATTED_LABEL" # GPS_LABEL or STRING_FORMATTED_LABEL
+
         self.transform = transform
         
         self.img_folder = 'Data/YFCC100m/data/images'
@@ -717,6 +720,26 @@ class YfccPlacesDataset(data.Dataset):
             random.shuffle(info['alllang'])
             pickle.dump(info, open('dataloader_files/yfcc_anns.pkl', 'wb'))
 
+        # Distinguish between global geography labels vs region geography labels
+        country_check_arr = set()
+        for image_id in self.image_ids:
+            if len(country_check_arr) > 2:
+                # break if more than 2 distinct potential "countries"
+                break
+            country = self.with_country.loc[self.with_country['photoid'] == int(image_id)]['placename'].values
+            if len(country) > 1:
+                country = country[list(country).index('United+Kingdom')]
+            else:
+                country = country[0]
+            country_check_arr.add(country)
+
+        self.geography_label_string_type = "COUNTRY_LABEL"
+        for potential_country in country_check_arr:
+            try:
+                pycountry.countries.search_fuzzy(potential_country.replace('+', ' '))
+            except LookupError:
+                geography_label_string_type = "REGION_LABEL"
+                break
 
         class KeyDict(dict):
             def __missing__(self, key):
@@ -726,11 +749,11 @@ class YfccPlacesDataset(data.Dataset):
             content = f.readlines()
         self.categories = [x.strip() for x in content]
 
-        #self.scene_mapping = NoneDict()
-        #if os.path.exists('dataloader_files/yfcc_scene_mapping.pkl'):
-        #    self.scene_mapping = pickle.load(open('dataloader_files/yfcc_scene_mapping.pkl', 'rb'))
-        #else:
-        #    setup_scenemapping(self, 'yfcc')
+        self.scene_mapping = NoneDict()
+        if os.path.exists('dataloader_files/yfcc_scene_mapping.pkl'):
+           self.scene_mapping = pickle.load(open('dataloader_files/yfcc_scene_mapping.pkl', 'rb'))
+        else:
+           setup_scenemapping(self, 'yfcc')
 
         self.group_mapping = None
         self.people_labels = []
@@ -948,16 +971,34 @@ class CityScapesDataset(data.Dataset):
         self.transform = transform
         self.img_folder = '/Users/home/Desktop/research/data/cityscapes/gtFine_trainvaltest/gtFine/train'
 
+        self.geography_info_type = "GPS_LABEL" # GPS_LABEL or STRING_FORMATTED_LABEL
+
+        self.geography_label_string_type = None # auto initialized to "COUNTRY_LABEL" or "REGION_LABEL" if geography_info_type is "STRING_FORMATTED_LABEL"
+
         # directory storing gps information
         self.gps_folder = '/Users/home/Desktop/research/data/cityscapes/vehicle_trainvaltest/vehicle/train'
 
-        # boundary shapefile
+        # local boundary shapefile from 
+        # https://maps.princeton.edu/catalog/stanford-nh891yz3147
         with open("/Users/home/Downloads/stanford-nh891yz3147-geojson.json") as f:
             self.geo_boundaries = json.load(f)
 
-        # csv data for choropleth analysis
+        # name of key representing region name within the shapefile (these key names are different for different shapefiles so it is necessary to specify to access the region name, eg. 'Bayern)
+        self.geo_boundaries_key_name = 'name_1'    
+
+        # subregion boundaries shapefile (for global subregion analysis) from 
+        # https://drive.google.com/drive/folders/1ot9rCqeMW61z8uY-yXw30YI_DTUzeU9Z?usp=sharing
+        with open("/Users/home/Downloads/subregion_global.json") as f:
+            self.subregion_boundaries = json.load(f)
+
+        # name of key representing region name within the shapefile
+        self.subregion_boundaries_key_name = 'subregion'
+
+        # csv data for choropleth analysis 
+        # CSV is comprised of 2 columns: 
+        # colname1='Region' (string format of region name, eg. 'Bayern')
+        # colname2='Data' (double format of data of interest, eg. 3.14)
         self.choropleth_filepath = "/Users/home/Downloads/data.csv"
-        
 
         # store all of the city names in array [aachen, bochum, etc]
         self.city_names = os.listdir(self.gps_folder)

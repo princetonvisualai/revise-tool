@@ -46,10 +46,14 @@ def country_to_iso3(country):
 
 def geo_ctr(dataloader, args):
     # redirect to geo_ctr_gps if dataset is of gps form:
-    if (dataloader.dataset.geo_boundaries is not None):
+    if (dataloader.dataset.geography_info_type == "GPS_LABEL"):
         print("redirecting to geo_ctr_gps()...")
         return geo_ctr_gps(dataloader, args)
-    print("starting geo_ctr()...")
+    if (dataloader.dataset.geography_info_type == "STRING_FORMATTED_LABEL" and dataloader.dataset.geography_label_string_type == "REGION_LABEL"):
+       print("redirecting to geo_ctr_region()...")
+       return geo_ctr_region(dataloader, args)
+    
+    print("starting geo_ctr() for country label format")
     counts = {}
 
     for i, (data, target) in enumerate(tqdm(dataloader)):
@@ -60,20 +64,51 @@ def geo_ctr(dataloader, args):
 
     pickle.dump(counts, open("results/{}/geo_ctr.pkl".format(args.folder), "wb"))
 
+# private function called from geo_counter() if dataset is of region label form
+def geo_ctr_region(dataloader, args):
+    region_to_id_map = {}
+    id_to_region_map = {}
+
+    for i, (data, target) in enumerate(tqdm(dataloader)):
+        region = target[2][0]
+        id_to_region_map[target[3]] = region
+        if region not in region_to_id_map.keys():
+            region_to_id_map[region] = 0
+        region_to_id_map[region] += 1
+
+    combined_dict = {}
+    combined_dict["region_to_id"] = region_to_id_map
+    combined_dict["id_to_region"] = id_to_region_map
+
+    pickle.dump(combined_dict, open("results/{}/geo_ctr.pkl".format(args.folder), "wb"))
+
 # private function called from geo_ctr() if dataset is of gps form
 def geo_ctr_gps(dataloader, args):
     # import custom political boundaries shapefile from dataset 
     geo_boundaries = dataloader.dataset.geo_boundaries
+    geo_boundaries_key_name = dataloader.dataset.geo_boundaries_key_name
+
+    # import subregion boundaries shapefile
+    subregion_boundaries = dataloader.dataset.subregion_boundaries
+    subregion_boundaries_key_name = dataloader.dataset.subregion_boundaries_key_name
 
     # fn that returns name of political region that a point falls into (eg. Manhattan)
-    def bin_point(lng, lat):
+    def bin_point(lng, lat, is_subregion):
         point = Point(lng, lat)
         # check each polygon to see if it contains the point
-        for feature in geo_boundaries['features']:
-            polygon = shape(feature['geometry'])
-            if polygon.contains(point):
-                return feature['properties']['name_1']
-        return None
+        if not is_subregion:
+            for feature in geo_boundaries['features']:
+                polygon = shape(feature['geometry'])
+                if polygon.contains(point):
+                    return feature['properties'][geo_boundaries_key_name]
+            return None
+        else:
+            # subregion binning
+            for feature in subregion_boundaries['features']:
+                polygon = shape(feature['geometry'])
+                if polygon.contains(point):
+                    return feature['properties'][subregion_boundaries_key_name]
+            return None
     
     # maps each region (eg. Manhattan) to an array of id's representing the data filename
     region_to_id_map = {}
@@ -81,12 +116,17 @@ def geo_ctr_gps(dataloader, args):
     id_to_gps_map = {}
     # maps each id (representing data filename) to region 
     id_to_region_map = {}
+
+    # maps each subregion (eg. North America) to an array of id's representing the data filename
+    subregion_to_id_map = {}
+    id_to_subregion_map = {}
     
     for i, (data, target) in enumerate(tqdm(dataloader)):
         lat_lng = target[2][1]
         id_to_gps_map[target[3]] = lat_lng
         # find which region the image was taken from
-        region_name = bin_point(lat_lng['lng'], lat_lng['lat'])
+        region_name = bin_point(lat_lng['lng'], lat_lng['lat'], False)
+
         # add filepath id to region_to_id_map
         if region_name is not None:
             id_to_region_map[target[3]] = region_name
@@ -101,19 +141,41 @@ def geo_ctr_gps(dataloader, args):
             id_list.append(target[3])
             # add filepath id to region_to_id_map
             region_to_id_map['out_of_boundary'] = id_list
-    
+
+        if subregion_boundaries is not None:
+            subregion_name = bin_point(lat_lng['lng'], lat_lng['lat'], True)
+            if subregion_name is not None:
+                id_to_subregion_map[target[3]] = subregion_name
+                id_list = subregion_to_id_map.get(subregion_name, [])
+                id_list.append(target[3])
+                subregion_to_id_map[subregion_name] = id_list
+            else:
+                id_list = subregion_to_id_map.get('out_of_boundary', [])
+                id_list.append(target[3])
+                subregion_to_id_map['out_of_boundary'] = id_list
+                id_to_subregion_map[target[3]] = "out_of_boundary"
+
     # combine all the maps into one big one
     counts_gps = {}
     counts_gps['region_to_id'] = region_to_id_map
     counts_gps['id_to_gps'] = id_to_gps_map
     counts_gps['id_to_region'] = id_to_region_map
-    pickle.dump(counts_gps, open("results/{}/geo_ctr_gps.pkl".format(args.folder), "wb"))
+    # only create mapping if there are at least 2 unique subregions
+    if len(subregion_to_id_map.keys()) >= 2:
+        counts_gps['subregion_to_id'] = subregion_to_id_map
+        counts_gps['id_to_subregion'] = id_to_subregion_map
+    else:
+        print("Not enough subregions (< 3) for subregion analysis")
+    pickle.dump(counts_gps, open("results/{}/geo_ctr.pkl".format(args.folder), "wb"))
 
 def geo_tag(dataloader, args):
     # redirect to geo_tag_gps if dataset is of gps form:
-    if (dataloader.dataset.geo_boundaries is not None):
+    if (dataloader.dataset.geography_info_type == "GPS_LABEL"):
         print("redirecting to geo_tag_gps()...")
         return geo_tag_gps(dataloader, args)
+    elif (dataloader.dataset.geography_info_type == "STRING_FORMATTED_LABEL" and dataloader.dataset.geography_label_string_type == "REGION_LABEL"):
+        print("redirecting to geo_tag_region()...")
+        return geo_tag_region(dataloader, args)
     country_tags = {}
     tag_to_subregion_features = {}
     categories = dataloader.dataset.categories
@@ -165,14 +227,96 @@ def geo_tag_gps(dataloader, args):
     # map from a region name to a list whose value at index i represents count of category
     # i 
     region_tags = {}
+    subregion_tags = None # initialize later if subregion dat is available
     tag_to_region_features = {}
     categories = dataloader.dataset.categories
 
-    if not os.path.exists("results/{}/geo_ctr_gps.pkl".format(args.folder)):
+    if not os.path.exists("results/{}/geo_ctr.pkl".format(args.folder)):
         print('running geo_ctr_gps() first to get necessary info...')
         geo_ctr_gps(dataloader, args)
     
-    counts_gps = pickle.load(open("results/{}/geo_ctr_gps.pkl".format(args.folder), "rb"))
+    counts_gps = pickle.load(open("results/{}/geo_ctr.pkl".format(args.folder), "rb"))
+    id_to_region = counts_gps['id_to_region']
+    id_to_subregion = counts_gps.get("id_to_subregion", None)
+
+    # get name of regions
+    unique_regions = list(set(id_to_region.values()))
+
+    # get name of subregions, if applicable
+    unique_subregions = None
+    if id_to_subregion is not None:
+        subregion_tags = {}
+        unique_subregions = list(set(id_to_subregion.values()))
+
+    # Extracts features from model pretrained on ImageNet
+    use_cuda = torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
+    model = models.alexnet(pretrained=True).to(device)
+    new_classifier = nn.Sequential(*list(model.classifier.children())[:-1])
+    model.classifier = new_classifier
+    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+
+    region_features = {}
+    for region in unique_regions:
+        region_features[region] = []
+
+    for cat in range(len(categories)):
+        tag_to_region_features[cat] = copy.deepcopy(region_features)
+
+    for i, (data, target) in enumerate(tqdm(dataloader)):
+        if data is None:
+            continue
+        region_name = id_to_region.get(target[3], None)
+        if region_name is None:
+            continue
+        anns = target[0]
+        filepath = target[3]
+        this_categories = list(set([categories.index(ann['label']) for ann in anns]))
+
+        if region_name not in region_tags.keys():
+            region_tags[region_name] = np.zeros(len(categories))
+        
+        subregion_name = None
+        if id_to_subregion is not None:
+            subregion_name = id_to_subregion[target[3]]
+            if subregion_name not in subregion_tags.keys():
+                subregion_tags[subregion_name] = np.zeros(len(categories))
+
+        this_features = None
+        for cat in this_categories:
+            if len(tag_to_region_features[cat][region_name]) < 500:
+                data = normalize(data).to(device)
+                big_data = F.interpolate(data.unsqueeze(0), size=224, mode='bilinear').to(device)
+                this_features = model.forward(big_data)
+                break
+        for cat in this_categories:
+            if this_features is not None and len(tag_to_region_features[cat][region_name]) < 500:
+                tag_to_region_features[cat][region_name].append((this_features.data.cpu().numpy(), filepath))
+        for ann in anns:
+            region_tags[region_name][categories.index(ann['label'])] += 1
+            if id_to_subregion is not None:
+                subregion_tags[subregion_name][categories.index(ann['label'])] += 1
+    info_stats = {}
+    info_stats['region_tags'] = region_tags
+    if id_to_subregion is not None:
+        print("Adding subregion tags...")
+        info_stats['subregion_tags'] = subregion_tags
+    info_stats['tag_to_region_features'] = tag_to_region_features
+    pickle.dump(info_stats, open("results/{}/geo_tag.pkl".format(args.folder), "wb"))
+
+# private function called from geo_tag() if dataset is of STRING_FORMATTED_LABEL + REGION_LABEL form
+def geo_tag_region(dataloader, args):
+    # map from a region name to a list whose value at index i represents count of category
+    # i 
+    region_tags = {}
+    tag_to_region_features = {}
+    categories = dataloader.dataset.categories
+
+    if not os.path.exists("results/{}/geo_ctr.pkl".format(args.folder)):
+        print('running geo_ctr_region() first to get necessary info...')
+        geo_ctr_region(dataloader, args)
+    
+    counts = pickle.load(open("results/{}/geo_ctr.pkl".format(args.folder), "rb"))
     id_to_region = counts_gps['id_to_region']
 
     # get name of regions
@@ -218,8 +362,8 @@ def geo_tag_gps(dataloader, args):
     info_stats = {}
     info_stats['region_tags'] = region_tags
     info_stats['tag_to_region_features'] = tag_to_region_features
-    pickle.dump(info_stats, open("results/{}/geo_tag_gps.pkl".format(args.folder), "wb"))
-
+    pickle.dump(info_stats, open("results/{}/geo_tag.pkl".format(args.folder), "wb"))
+    
 def geo_lng(dataloader, args):
     mappings = pickle.load(open('util_files/country_lang_mappings.pkl', 'rb'))
     iso3_to_lang = mappings['iso3_to_lang']
