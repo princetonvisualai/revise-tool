@@ -121,12 +121,12 @@ def att_siz(dataloader, args):
                 if not yes_face or pixel_size < 1000.:
                     scene_group = target[4]
                     if not yes_face:
-                        no_faces[att].append(((size, pixel_size, scene_group), (file_path, i)))
+                        no_faces[att].append(((size, pixel_size, scene_group), (file_path, index)))
                     elif pixel_size < 1000.:        
-                        tiny_sizes[att].append(((size, scene_group), (file_path, i)))
+                        tiny_sizes[att].append(((size, scene_group), (file_path, index)))
                     continue
-                sizes[att].append((size, (file_path, i)))
-                distances[att].append((distance, (file_path, i)))
+                sizes[att].append((size, (file_path, index)))
+                distances[att].append((distance, (file_path, index)))
 
     if FACE_DETECT == 0:
         pickle.dump(detect_info, open('{}_rekognitioninfo.pkl'.format(args.folder), 'wb'))
