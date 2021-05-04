@@ -62,137 +62,211 @@ def country_to_iso3(country):
     return iso3
 
 def sixprep(dataset, folder_name):
-    info_stats = pickle.load(open("results/{}/geo_tag.pkl".format(folder_name), "rb")) #20GB
-    country_tags = info_stats['country_tags']
-    tag_to_subregion_features = info_stats['tag_to_subregion_features']
-    iso3_to_subregion = pickle.load(open('iso3_to_subregion_mappings.pkl', 'rb'))
-    categories = dataset.categories
-    total_counts = np.zeros(len(categories))
-    subregion_tags = {}
-    for country, counts in country_tags.items():
-        total_counts = np.add(total_counts, counts)
-        subregion = iso3_to_subregion[country_to_iso3(country)]
-        if subregion not in subregion_tags.keys():
-            subregion_tags[subregion] = np.zeros(len(categories))
-        subregion_tags[subregion] = np.add(subregion_tags[subregion], counts)
-    total_counts = total_counts.astype(int)
-    sum_total_counts = int(np.sum(total_counts))
-    pvalues_over = {} # pvalue : '[country]: [tag] (country num and total num info for now)'
-    pvalues_under = {} 
-    if not os.path.exists("checkpoints/{}/geo_tag_a.pkl".format(folder_name)):
+    if (dataset.geography_info_type == "STRING_FORMATTED_LABEL" and dataset.geography_label_string_type == "COUNTRY_LABEL"):
+        info_stats = pickle.load(open("results/{}/geo_tag.pkl".format(folder_name), "rb")) #20GB
+        country_tags = info_stats['country_tags']
+        tag_to_subregion_features = info_stats['tag_to_subregion_features']
+        iso3_to_subregion = pickle.load(open('iso3_to_subregion_mappings.pkl', 'rb'))
+        categories = dataset.categories
+        total_counts = np.zeros(len(categories))
+        subregion_tags = {}
         for country, counts in country_tags.items():
-            tags_for_country = int(np.sum(counts))
-            if tags_for_country < 50: # threshold for country to have at least 50 tags so there are enough samples for analysis
-                continue
-            for i, count in enumerate(counts):
-                this_counts = np.zeros(tags_for_country)
-                this_counts[:int(count)] = 1
-                that_counts = np.zeros(sum_total_counts - tags_for_country)
-                that_counts[:total_counts[i] - int(count)] = 1
-                p = stats.ttest_ind(this_counts, that_counts)[1]
-                tag_info = '{0}-{1} ({2}/{3} vs {4}/{5})'.format(country, categories[i], int(count), tags_for_country, int(total_counts[i] - count), sum_total_counts - tags_for_country)
-                if np.mean(this_counts) > np.mean(that_counts):
-                    pvalues_over[p] = tag_info
-                else:
-                    pvalues_under[p] = tag_info
-        pickle.dump([pvalues_under, pvalues_over], open('checkpoints/{}/geo_tag_a.pkl'.format(folder_name), 'wb'))
-    else:
-        pvalues_under, pvalues_over = pickle.load(open('checkpoints/{}/geo_tag_a.pkl'.format(folder_name), 'rb'))
+            total_counts = np.add(total_counts, counts)
+            subregion = iso3_to_subregion[country_to_iso3(country)]
+            if subregion not in subregion_tags.keys():
+                subregion_tags[subregion] = np.zeros(len(categories))
+            subregion_tags[subregion] = np.add(subregion_tags[subregion], counts)
+        total_counts = total_counts.astype(int)
+        sum_total_counts = int(np.sum(total_counts))
+        pvalues_over = {} # pvalue : '[country]: [tag] (country num and total num info for now)'
+        pvalues_under = {} 
+        if not os.path.exists("checkpoints/{}/geo_tag_a.pkl".format(folder_name)):
+            for country, counts in country_tags.items():
+                tags_for_country = int(np.sum(counts))
+                if tags_for_country < 50: # threshold for country to have at least 50 tags so there are enough samples for analysis
+                    continue
+                for i, count in enumerate(counts):
+                    this_counts = np.zeros(tags_for_country)
+                    this_counts[:int(count)] = 1
+                    that_counts = np.zeros(sum_total_counts - tags_for_country)
+                    that_counts[:total_counts[i] - int(count)] = 1
+                    p = stats.ttest_ind(this_counts, that_counts)[1]
+                    tag_info = '{0}-{1} ({2}/{3} vs {4}/{5})'.format(country, categories[i], int(count), tags_for_country, int(total_counts[i] - count), sum_total_counts - tags_for_country)
+                    if np.mean(this_counts) > np.mean(that_counts):
+                        pvalues_over[p] = tag_info
+                    else:
+                        pvalues_under[p] = tag_info
+            pickle.dump([pvalues_under, pvalues_over], open('checkpoints/{}/geo_tag_a.pkl'.format(folder_name), 'wb'))
+        else:
+            pvalues_under, pvalues_over = pickle.load(open('checkpoints/{}/geo_tag_a.pkl'.format(folder_name), 'rb'))
 
-    import warnings
-    warnings.filterwarnings("ignore")
+        import warnings
+        warnings.filterwarnings("ignore")
 
-    if not os.path.exists('checkpoints/{}/geo_tag_b.pkl'.format(folder_name)):
-        phrase_to_value = {}
-        ## Look at appearance differences in how a tag is represented across subregions
-        for tag in tag_to_subregion_features.keys():
-            subregion_features = tag_to_subregion_features[tag]
-            all_subregions = list(subregion_features.keys())
-            all_features = []
-            all_filepaths = []
-            start = 0
-            for subregion in all_subregions:
-                this_features = [features[0] for features in subregion_features[subregion]]
-                this_filepaths = [features[1] for features in subregion_features[subregion]]
-                if len(this_features) > 0:
-                    all_features.append(np.array(this_features)[:, 0, :])
-                    all_filepaths.append(this_filepaths)
-            if len(all_features) == 0:
-                continue
-            all_features = np.concatenate(all_features, axis=0)
-            all_filepaths = np.concatenate(all_filepaths, axis=0)
-            labels = np.zeros(len(all_features))
-            for j, subregion in enumerate(all_subregions):
-                labels[start:len(subregion_features[subregion])+start] = j
-                start += len(subregion_features[subregion])
-            num_features = int(np.sqrt(len(all_features)))
-            all_features = project(all_features, num_features)
+        if not os.path.exists('checkpoints/{}/geo_tag_b.pkl'.format(folder_name)):
+            phrase_to_value = {}
+            ## Look at appearance differences in how a tag is represented across subregions
+            for tag in tag_to_subregion_features.keys():
+                subregion_features = tag_to_subregion_features[tag]
+                all_subregions = list(subregion_features.keys())
+                all_features = []
+                all_filepaths = []
+                start = 0
+                for subregion in all_subregions:
+                    this_features = [features[0] for features in subregion_features[subregion]]
+                    this_filepaths = [features[1] for features in subregion_features[subregion]]
+                    if len(this_features) > 0:
+                        all_features.append(np.array(this_features)[:, 0, :])
+                        all_filepaths.append(this_filepaths)
+                if len(all_features) == 0:
+                    continue
+                all_features = np.concatenate(all_features, axis=0)
+                all_filepaths = np.concatenate(all_filepaths, axis=0)
+                labels = np.zeros(len(all_features))
+                for j, subregion in enumerate(all_subregions):
+                    labels[start:len(subregion_features[subregion])+start] = j
+                    start += len(subregion_features[subregion])
+                num_features = int(np.sqrt(len(all_features)))
+                all_features = project(all_features, num_features)
 
-            clf = svm.SVC(kernel='linear', probability=True, decision_function_shape='ovr', class_weight='balanced', max_iter=5000)
-            clf_ovo = svm.SVC(kernel='linear', probability=False, decision_function_shape='ovo', class_weight='balanced')
+                clf = svm.SVC(kernel='linear', probability=True, decision_function_shape='ovr', class_weight='balanced', max_iter=5000)
+                clf_ovo = svm.SVC(kernel='linear', probability=False, decision_function_shape='ovo', class_weight='balanced')
 
-            if len(np.unique(labels)) <= 1:
-                continue
-            clf.fit(all_features, labels)
-            clf_ovo.fit(all_features, labels)
-            acc = clf.score(all_features, labels)
-            acc_ovo = clf_ovo.score(all_features, labels)
-            probs = clf.decision_function(all_features)
+                if len(np.unique(labels)) <= 1:
+                    continue
+                clf.fit(all_features, labels)
+                clf_ovo.fit(all_features, labels)
+                acc = clf.score(all_features, labels)
+                acc_ovo = clf_ovo.score(all_features, labels)
+                probs = clf.decision_function(all_features)
 
-            class_preds = clf.predict(all_features)
-            class_probs = clf.predict_proba(all_features)
+                class_preds = clf.predict(all_features)
+                class_probs = clf.predict_proba(all_features)
 
-            j_to_acc = {}
-            for j, subregion in enumerate(all_subregions):
-                if j in labels:
-                    # to get acc in subregion vs out
-                    this_labels = np.copy(labels)
-                    this_labels[np.where(labels!=j)[0]] = -1
-                    this_preds = np.copy(class_preds)
-                    this_preds[np.where(class_preds!=j)[0]] = -1
-                    this_acc = np.mean(this_preds == this_labels)
-                    j_to_acc[j] = this_acc
+                j_to_acc = {}
+                for j, subregion in enumerate(all_subregions):
+                    if j in labels:
+                        # to get acc in subregion vs out
+                        this_labels = np.copy(labels)
+                        this_labels[np.where(labels!=j)[0]] = -1
+                        this_preds = np.copy(class_preds)
+                        this_preds[np.where(class_preds!=j)[0]] = -1
+                        this_acc = np.mean(this_preds == this_labels)
+                        j_to_acc[j] = this_acc
 
-                    # different version of accuracy
-                    # indices = np.where(labels == j)[0]
-                    # this_acc = np.mean(labels[indices] == class_preds[indices])
-                    # wilson_acc = wilson(this_acc, len(indices))[0]
-                    # j_to_acc[j] = wilson_acc # so that country with one image isn't most accurate
-                    # #j_to_acc[j] = this_acc
+                        # different version of accuracy
+                        # indices = np.where(labels == j)[0]
+                        # this_acc = np.mean(labels[indices] == class_preds[indices])
+                        # wilson_acc = wilson(this_acc, len(indices))[0]
+                        # j_to_acc[j] = wilson_acc # so that country with one image isn't most accurate
+                        # #j_to_acc[j] = this_acc
 
-            fig = plt.figure(figsize=(16, 12))
-            plt.subplots_adjust(hspace=.48)
-            fontsize = 24
-            diff_subregion = max(j_to_acc.items(), key=operator.itemgetter(1))[0]
-            subregion_index = list(clf.classes_).index(diff_subregion)
-            class_probs = class_probs[:, subregion_index]
-            in_sub = np.where(labels == diff_subregion)[0]
-            out_sub = np.where(labels != diff_subregion)[0]
-            in_probs = class_probs[in_sub]
-            out_probs = class_probs[out_sub]
-            in_indices = np.argsort(in_probs)
-            out_indices = np.argsort(out_probs)
+                fig = plt.figure(figsize=(16, 12))
+                plt.subplots_adjust(hspace=.48)
+                fontsize = 24
+                diff_subregion = max(j_to_acc.items(), key=operator.itemgetter(1))[0]
+                subregion_index = list(clf.classes_).index(diff_subregion)
+                class_probs = class_probs[:, subregion_index]
+                in_sub = np.where(labels == diff_subregion)[0]
+                out_sub = np.where(labels != diff_subregion)[0]
+                in_probs = class_probs[in_sub]
+                out_probs = class_probs[out_sub]
+                in_indices = np.argsort(in_probs)
+                out_indices = np.argsort(out_probs)
 
-            original_labels = np.copy(labels)
-            def subregion_scoring(estimator, X_test, y_test):
-                y_pred = estimator.predict(X_test)
-                y_test[np.where(y_test!=diff_subregion)[0]] = -1
-                y_pred[np.where(y_pred!=diff_subregion)[0]] = -1
-                acc_random = np.mean(y_test == y_pred)
-                return acc_random
+                original_labels = np.copy(labels)
+                def subregion_scoring(estimator, X_test, y_test):
+                    y_pred = estimator.predict(X_test)
+                    y_test[np.where(y_test!=diff_subregion)[0]] = -1
+                    y_pred[np.where(y_pred!=diff_subregion)[0]] = -1
+                    acc_random = np.mean(y_test == y_pred)
+                    return acc_random
 
-            base_acc, rand_acc, p_value = permutation_test_score(clf, all_features, labels, scoring=subregion_scoring, n_permutations=100)
-            value = base_acc/np.mean(rand_acc)
-            if p_value > .05 and value < 1.2: # can tune as desired
-                continue
+                base_acc, rand_acc, p_value = permutation_test_score(clf, all_features, labels, scoring=subregion_scoring, n_permutations=100)
+                value = base_acc/np.mean(rand_acc)
+                if p_value > .05 and value < 1.2: # can tune as desired
+                    continue
 
-            phrase = dataset.labels_to_names[dataset.categories[tag]]
-            phrase_to_value[phrase] = [value, all_subregions[diff_subregion], acc, p_value, num_features, j_to_acc]
+                phrase = dataset.labels_to_names[dataset.categories[tag]]
+                phrase_to_value[phrase] = [value, all_subregions[diff_subregion], acc, p_value, num_features, j_to_acc]
+                
+                pickle.dump([original_labels, class_probs, class_preds, diff_subregion, all_filepaths], open('results/{0}/{1}/{2}_info.pkl'.format(folder_name, 'geo_tag', dataset.labels_to_names[dataset.categories[tag]]), 'wb'))
+            pickle.dump(phrase_to_value, open('checkpoints/{}/geo_tag_b.pkl'.format(folder_name), 'wb'))
+        else:
+            phrase_to_value = pickle.load(open('checkpoints/{}/geo_tag_b.pkl'.format(folder_name), 'rb'))
             
-            pickle.dump([original_labels, class_probs, class_preds, diff_subregion, all_filepaths], open('results/{0}/{1}/{2}_info.pkl'.format(folder_name, 'geo_tag', dataset.labels_to_names[dataset.categories[tag]]), 'wb'))
-        pickle.dump(phrase_to_value, open('checkpoints/{}/geo_tag_b.pkl'.format(folder_name), 'wb'))
-    else:
-        phrase_to_value = pickle.load(open('checkpoints/{}/geo_tag_b.pkl'.format(folder_name), 'rb'))
+    elif (dataset.geography_info_type == "STRING_FORMATTED_LABEL" and dataset.geography_label_string_type == "REGION_LABEL"):
+        info_stats = pickle.load(open("results/{}/geo_tag.pkl".format(folder_name), "rb")) 
+        region_tags = info_stats['region_tags']
+        tag_to_region_features = info_stats['tag_to_region_features']
+
+        categories = dataset.categories
+        total_counts = np.zeros(len(categories))
+
+        for region, counts in region_tags.items():
+            total_counts = np.add(total_counts, counts)
+
+        total_counts = total_counts.astype(int)
+        sum_total_counts = int(np.sum(total_counts))
+
+        if not os.path.exists('checkpoints/{}/geo_tag_a.pkl'.format(folder_name)):
+            pvalues_over = {} # pvalue : '[region]: [tag] (region num and total num info for now)'
+            pvalues_under = {} 
+            for region, counts in region_tags.items():
+                tags_for_region = int(np.sum(counts))
+                if tags_for_region < 50: # threshold for region to have at least 50 tags so there are enough samples for analysis
+                    continue
+                for i, count in enumerate(counts):
+                    this_counts = np.zeros(tags_for_region)
+                    this_counts[:int(count)] = 1
+                    that_counts = np.zeros(sum_total_counts - tags_for_region)
+                    that_counts[:total_counts[i] - int(count)] = 1
+                    p = stats.ttest_ind(this_counts, that_counts)[1]
+                    tag_info = '{0}-{1} ({2}/{3} vs {4}/{5})'.format(region, categories[i], int(count), tags_for_region, int(total_counts[i] - count), sum_total_counts - tags_for_region)
+                    if np.mean(this_counts) > np.mean(that_counts):
+                        pvalues_over[p] = tag_info
+                    else:
+                        pvalues_under[p] = tag_info
+            pickle.dump([pvalues_under, pvalues_over], open('checkpoints/{}/geo_tag_a.pkl'.format(folder_name), 'wb'))
+        else:
+            pvalues_under, pvalues_over = pickle.load(open('checkpoints/{}/geo_tag_a.pkl'.format(folder_name), 'rb'))
+
+    elif dataset.geography_info_type == "GPS_LABEL":
+        info_stats = pickle.load(open("results/{}/geo_tag.pkl".format(folder_name), "rb")) 
+        region_tags = info_stats['region_tags']
+        subregion_tags = info_stats.get('subregion_tags', None)
+        tag_to_region_features = info_stats['tag_to_region_features']
+
+        categories = dataset.categories
+        total_counts = np.zeros(len(categories))
+
+        for region, counts in region_tags.items():
+            total_counts = np.add(total_counts, counts)
+
+        total_counts = total_counts.astype(int)
+        sum_total_counts = int(np.sum(total_counts))
+
+        if not os.path.exists('checkpoints/{}/geo_tag_a.pkl'.format(folder_name)):
+            pvalues_over = {} # pvalue : '[region]: [tag] (region num and total num info for now)'
+            pvalues_under = {} 
+            for region, counts in region_tags.items():
+                tags_for_region = int(np.sum(counts))
+                if tags_for_region < 50: # threshold for region to have at least 50 tags so there are enough samples for analysis
+                    continue
+                for i, count in enumerate(counts):
+                    this_counts = np.zeros(tags_for_region)
+                    this_counts[:int(count)] = 1
+                    that_counts = np.zeros(sum_total_counts - tags_for_region)
+                    that_counts[:total_counts[i] - int(count)] = 1
+                    p = stats.ttest_ind(this_counts, that_counts)[1]
+                    tag_info = '{0}-{1} ({2}/{3} vs {4}/{5})'.format(region, categories[i], int(count), tags_for_region, int(total_counts[i] - count), sum_total_counts - tags_for_region)
+                    if np.mean(this_counts) > np.mean(that_counts):
+                        pvalues_over[p] = tag_info
+                    else:
+                        pvalues_under[p] = tag_info
+            pickle.dump([pvalues_under, pvalues_over], open('checkpoints/{}/geo_tag_a.pkl'.format(folder_name), 'wb'))
+        else:
+            pvalues_under, pvalues_over = pickle.load(open('checkpoints/{}/geo_tag_a.pkl'.format(folder_name), 'rb'))
 
 def tenprep(dataset, folder_name):
     iso3_to_subregion = pickle.load(open('iso3_to_subregion_mappings.pkl', 'rb'))
@@ -332,8 +406,10 @@ if __name__ == '__main__':
         dataset = datasets.ImagenetDataset(transform_train)
     elif args.dataset == 'yfcc':
         dataset = datasets.YfccPlacesDataset(transform_train, 'geo_tag')
+    elif args.dataset == 'cityscapes':
+        dataset = datasets.CityScapesDataset(transform_train)
 
-    if not os.path.exists("results/{}/geo_tag.pkl".format(args.folder)):
+    if (not os.path.exists("results/{}/geo_tag.pkl".format(args.folder))) and (not os.path.exists("results/{}/geo_tag.pkl".format(args.folder))) and (not os.path.exists("results/{}/geo_tag.pkl".format(args.folder))):
         print("geo_tag Metric was not run for this dataset.")
     else:
         sixprep(dataset, args.folder)
