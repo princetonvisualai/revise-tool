@@ -80,7 +80,7 @@ def geo_ctr_region(dataloader, args):
     combined_dict["region_to_id"] = region_to_id_map
     combined_dict["id_to_region"] = id_to_region_map
 
-    pickle.dump(combined_dict, open("results/{}/geo_ctr_region.pkl".format(args.folder), "wb"))
+    pickle.dump(combined_dict, open("results/{}/geo_ctr.pkl".format(args.folder), "wb"))
 
 # private function called from geo_ctr() if dataset is of gps form
 def geo_ctr_gps(dataloader, args):
@@ -166,7 +166,7 @@ def geo_ctr_gps(dataloader, args):
         counts_gps['id_to_subregion'] = id_to_subregion_map
     else:
         print("Not enough subregions (< 3) for subregion analysis")
-    pickle.dump(counts_gps, open("results/{}/geo_ctr_gps.pkl".format(args.folder), "wb"))
+    pickle.dump(counts_gps, open("results/{}/geo_ctr.pkl".format(args.folder), "wb"))
 
 def geo_tag(dataloader, args):
     # redirect to geo_tag_gps if dataset is of gps form:
@@ -231,11 +231,11 @@ def geo_tag_gps(dataloader, args):
     tag_to_region_features = {}
     categories = dataloader.dataset.categories
 
-    if not os.path.exists("results/{}/geo_ctr_gps.pkl".format(args.folder)):
+    if not os.path.exists("results/{}/geo_ctr.pkl".format(args.folder)):
         print('running geo_ctr_gps() first to get necessary info...')
         geo_ctr_gps(dataloader, args)
     
-    counts_gps = pickle.load(open("results/{}/geo_ctr_gps.pkl".format(args.folder), "rb"))
+    counts_gps = pickle.load(open("results/{}/geo_ctr.pkl".format(args.folder), "rb"))
     id_to_region = counts_gps['id_to_region']
     id_to_subregion = counts_gps.get("id_to_subregion", None)
 
@@ -302,7 +302,7 @@ def geo_tag_gps(dataloader, args):
         print("Adding subregion tags...")
         info_stats['subregion_tags'] = subregion_tags
     info_stats['tag_to_region_features'] = tag_to_region_features
-    pickle.dump(info_stats, open("results/{}/geo_tag_gps.pkl".format(args.folder), "wb"))
+    pickle.dump(info_stats, open("results/{}/geo_tag.pkl".format(args.folder), "wb"))
 
 # private function called from geo_tag() if dataset is of STRING_FORMATTED_LABEL + REGION_LABEL form
 def geo_tag_region(dataloader, args):
@@ -312,11 +312,11 @@ def geo_tag_region(dataloader, args):
     tag_to_region_features = {}
     categories = dataloader.dataset.categories
 
-    if not os.path.exists("results/{}/geo_ctr_region.pkl".format(args.folder)):
+    if not os.path.exists("results/{}/geo_ctr.pkl".format(args.folder)):
         print('running geo_ctr_region() first to get necessary info...')
         geo_ctr_region(dataloader, args)
     
-    counts = pickle.load(open("results/{}/geo_ctr_region.pkl".format(args.folder), "rb"))
+    counts = pickle.load(open("results/{}/geo_ctr.pkl".format(args.folder), "rb"))
     id_to_region = counts_gps['id_to_region']
 
     # get name of regions
@@ -362,7 +362,7 @@ def geo_tag_region(dataloader, args):
     info_stats = {}
     info_stats['region_tags'] = region_tags
     info_stats['tag_to_region_features'] = tag_to_region_features
-    pickle.dump(info_stats, open("results/{}/geo_tag_region.pkl".format(args.folder), "wb"))
+    pickle.dump(info_stats, open("results/{}/geo_tag.pkl".format(args.folder), "wb"))
     
 def geo_lng(dataloader, args):
     mappings = pickle.load(open('util_files/country_lang_mappings.pkl', 'rb'))
