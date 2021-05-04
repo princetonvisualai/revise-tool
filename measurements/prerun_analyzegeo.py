@@ -196,7 +196,7 @@ def sixprep(dataset, folder_name):
             phrase_to_value = pickle.load(open('checkpoints/{}/geo_tag_b.pkl'.format(folder_name), 'rb'))
             
     elif (dataset.geography_info_type == "STRING_FORMATTED_LABEL" and dataset.geography_label_string_type == "REGION_LABEL"):
-        info_stats = pickle.load(open("results/{}/geo_tag_region.pkl".format(folder_name), "rb")) 
+        info_stats = pickle.load(open("results/{}/geo_tag.pkl".format(folder_name), "rb")) 
         region_tags = info_stats['region_tags']
         tag_to_region_features = info_stats['tag_to_region_features']
 
@@ -232,7 +232,7 @@ def sixprep(dataset, folder_name):
             pvalues_under, pvalues_over = pickle.load(open('checkpoints/{}/geo_tag_a.pkl'.format(folder_name), 'rb'))
 
     elif dataset.geography_info_type == "GPS_LABEL":
-        info_stats = pickle.load(open("results/{}/geo_tag_gps.pkl".format(folder_name), "rb")) 
+        info_stats = pickle.load(open("results/{}/geo_tag.pkl".format(folder_name), "rb")) 
         region_tags = info_stats['region_tags']
         subregion_tags = info_stats.get('subregion_tags', None)
         tag_to_region_features = info_stats['tag_to_region_features']
@@ -409,7 +409,7 @@ if __name__ == '__main__':
     elif args.dataset == 'cityscapes':
         dataset = datasets.CityScapesDataset(transform_train)
 
-    if (not os.path.exists("results/{}/geo_tag.pkl".format(args.folder))) and (not os.path.exists("results/{}/geo_tag_gps.pkl".format(args.folder))) and (not os.path.exists("results/{}/geo_tag_region.pkl".format(args.folder))):
+    if (not os.path.exists("results/{}/geo_tag.pkl".format(args.folder))) and (not os.path.exists("results/{}/geo_tag.pkl".format(args.folder))) and (not os.path.exists("results/{}/geo_tag.pkl".format(args.folder))):
         print("geo_tag Metric was not run for this dataset.")
     else:
         sixprep(dataset, args.folder)
