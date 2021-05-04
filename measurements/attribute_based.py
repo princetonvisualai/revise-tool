@@ -69,6 +69,7 @@ def att_siz(dataloader, args):
         
     for i, (data, target) in enumerate(tqdm(dataloader)):
         attribute = target[1]
+        file_path = target[3]
         # Only look at image if there is an attribute to analyze (Note attribute require a bbox around the person or thing to analyze)
         if len(attribute)> 1:
             shape = list(data.size())[1:]
@@ -120,12 +121,12 @@ def att_siz(dataloader, args):
                 if not yes_face or pixel_size < 1000.:
                     scene_group = target[4]
                     if not yes_face:
-                        no_faces[att].append((size, pixel_size, scene_group))
+                        no_faces[att].append(((size, pixel_size, scene_group), (file_path, index)))
                     elif pixel_size < 1000.:        
-                        tiny_sizes[att].append((size, scene_group))
+                        tiny_sizes[att].append(((size, scene_group), (file_path, index)))
                     continue
-                sizes[att].append(size)
-                distances[att].append(distance)
+                sizes[att].append((size, (file_path, index)))
+                distances[att].append((distance, (file_path, index)))
 
     if FACE_DETECT == 0:
         pickle.dump(detect_info, open('{}_rekognitioninfo.pkl'.format(args.folder), 'wb'))
@@ -153,7 +154,6 @@ def att_cnt(dataloader, args):
             
     for i, (data, target) in enumerate(tqdm(dataloader)):
         attribute = target[1]
-        
         anns = target[0]
         if len(attribute) > 1:
             categories = list(set([ann['label'] for ann in anns]))
@@ -169,6 +169,7 @@ def att_cnt(dataloader, args):
                     else:
                         for att in attribute[0]:
                             counts[att]["{0}-{1}".format(cat_b, cat_a)] += 1
+
     pickle.dump(counts, open("results/{}/att_cnt.pkl".format(args.folder), "wb"))
 
 def att_dis(dataloader, args):
@@ -197,9 +198,9 @@ def att_dis(dataloader, args):
                         prev_calc_dist = prev[0] / np.sqrt(prev[1]*prev[2])
                         calc_dist = distance / np.sqrt(person_area*ann_area)
                         if calc_dist < prev_calc_dist:
-                            distances[categories.index(ann['label'])][value][-1] = (distance, person_area, ann_area, file_path, j)
+                            distances[categories.index(ann['label'])][value][-1] = (distance, person_area, ann_area, file_path, j, index)
                     else:
-                        distances[categories.index(ann['label'])][value].append((distance, person_area, ann_area, file_path, j))
+                        distances[categories.index(ann['label'])][value].append((distance, person_area, ann_area, file_path, j, index))
                         seen_instances.append(categories.index(ann['label']))
 
     pickle.dump(distances, open("results/{}/att_dis.pkl".format(args.folder), "wb"))
@@ -229,7 +230,7 @@ def att_clu(dataloader, args):
     scene_filepaths = [[[] for j in range(num_attrs)] for i in range(len(categories))]
 
     # Extracts features of just the cropped object
-    model_file = 'cifar_resnet110.th'
+    model_file = 'util_files/cifar_resnet110.th'
     small_model = resnet110()
     checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage)
     state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
@@ -287,7 +288,7 @@ def att_scn(dataloader, args):
         attribute = target[1]
         anns = target[0]
         top_scene = target[4]
-        if len(attribute) > 1:
+        if len(attribute) > 1 and top_scene is not None:
             for scene in top_scene:
                 for att in attribute[0]:
                     scenes_per[scene][att] += 1

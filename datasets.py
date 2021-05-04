@@ -408,6 +408,11 @@ class CoCoDataset(data.Dataset):
         self.categories = list(self.labels_to_names.keys())
         self.attribute_names = ["Female", "Male"]
         self.scene_mapping = NoneDict()
+
+        # If attribute is ordinal (increases or decreases along an axis i.e. skin tone/age), set self.ordinal = True and define self.axis = [integers with indexed order of attributes]
+        self.ordinal = False
+        self.axis = []
+
         if os.path.exists('dataloader_files/coco_scene_mapping.pkl'):
             self.scene_mapping = pickle.load(open('dataloader_files/coco_scene_mapping.pkl', 'rb'))
         elif os.path.exists('results/coco_example/coco_scene_mapping.pkl'):
