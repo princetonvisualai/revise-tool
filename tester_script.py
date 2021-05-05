@@ -8,9 +8,10 @@ import random
 import numpy as np
 import cv2
 from operator import itemgetter
+import pickle
 
 
-NUM_EXS=10
+NUM_EXS=5
 
 def validate_dataset(dataset): 
 
@@ -48,8 +49,6 @@ def validate_dataset(dataset):
         print('---- Labels_to_names must be type: dict ---') 
         print('ERROR: Currently of type:', type(ds.labels_to_names), '\n')
     else: 
-        print('--- Total number of labels in the dataset ---')
-        print( str(len(ds.labels_to_names)), '\n')
         if len(ds.labels_to_names) != 0:
             print('---', str(NUM_EXS), 'random examples of human-interpretable labels in dataset ---' )
             rand_inds = random.sample(  range(len(ds.labels_to_names) - 1), NUM_EXS  )
@@ -66,6 +65,9 @@ def validate_dataset(dataset):
     if not isinstance(ds.categories, list):
         print('--- Categories must be type: list ---')
         print('ERROR: Currently of type:', type(ds.categories), '\n')
+    else: 
+        print('---- Total number of labels in the dataset ---')
+        print( str(len(ds.categories)),  '\n')
 
 
     # testing scene mappings 
@@ -78,7 +80,7 @@ def validate_dataset(dataset):
 
 
     # testing supercategories_to_names
-    try: 
+    try:
         if not isinstance(ds.supercategories_to_names, dict): 
             print('ERROR: self.supercategories_to_names must be type: dict \n')
     except AttributeError:
@@ -124,10 +126,14 @@ def validate_dataset(dataset):
         wrong_bbox=None
         if label.get('bbox', None): 
             for coord in label['bbox']: wrong_bbox=label['bbox'] if (coord<0 or coord>1) else None
-    if wrong_bbox: print('ERROR: All bounding box numbers must be scaled between 0 and 1. Got bounding box:', wrong_bbox, '\n')
+    if wrong_bbox: 
+        print('ERROR: All bounding box numbers must be scaled between 0 and 1. Got bounding box: ', end='')
+        for coord in wrong_bbox: 
+            print('%.2f, ' % coord, end='')
+        print('\n')
     if (len(att) != 1 and len(att) != 2) or (not isinstance(att[0], int)): 
         print('ERROR: gender_info must be a list of length: 1 in the form [None] or [int] or length: 2 in the form [int, [double, double, double, double]]\n')
-        print('Got:', att)
+        print('Got:', att[0]) 
     if att[0] != 0 and att[0]!= 1: 
         print('ERROR: gender annotations should be 0 for male, 1 for female, or None. Got value:', att[0], '\n')
     if len(geo) !=1 and len(geo) != 2: 
@@ -147,33 +153,49 @@ def validate_dataset(dataset):
         labels, attribute, geography, filepath, scene = anns
 
         if len(labels) == 0: 
-            print('Label: No object annotations for this image')
+            print('Label: No annotations for this image')
         for label in labels: 
             curr_label = ds.labels_to_names.get(label['label'], label['label']) if len(ds.labels_to_names)!=0 else label['label']
-            print('Label:', str(curr_label) + ', bbox: ' + str(label['bbox'])) if label.get('bbox', None) else print('Label:', label['label'])
+            print('Label:', str(curr_label), end='') 
+            if label.get('bbox'): 
+                print(', bbox: ', end='')
+                for coord in label['bbox']:
+                    print("%.2f, " % coord, end='')
+            try: 
+                supercat = ds.group_mapping(label['label'])
+                supercat_name = ds.supercategories_to_names[supercat]
+                print(supercat_name, 'supercategory', end='')
+            except: 
+                pass
+            print('')
 
-        if not attribute or not attribute[0]: curr_att='No attribute annotation for this image'
+        if not attribute or not attribute[0]: curr_att='No annotation for this image'
         elif attribute[0]==0: curr_att='Male'
         elif attribute[0]==1: curr_att='Female'
         else: curr_att='ERROR: Attribute annotation should be 0, 1, or None. Got:' + str(attribute[0])
         print('Attribute:', curr_att + ', bbox: ' + str(attribute[1])) if len(attribute)==2 else print('Attribute:', curr_att)
 
         for geo in geography: 
-            print('Geography:', geo) if geo else print('Geography: No geography annotations for this image')
+            print('Geography:', geo) if geo else print('Geography: No annotations for this image')
 
         print('Filepath:', filepath)
 
         if not scene or not scene[0]: 
-            print('Scene group: No scene annotations for this image')
+            print('Scene group: No annotations for this image')
         else:
-            try: 
-                for scn in scene: 
-                    scn_str = ds.scene_mapping.get(scn, scn)
-                    print('Scene group:', scn_str)
-            except AttributeError: 
-                print('Scene group:', scene)
-                print('WARNING: Scene_mapping is a recommended field if using scene annotations.')
+            try:
+               info = pickle.load(open('util_files/places_scene_info.pkl', 'rb'))
+               idx_to_scene = info['idx_to_scene']
+               idx_to_scenegroup = info['idx_to_scenegroup']
+               for scn in scene: 
+                   print('Scene group: ', idx_to_scenegroup[scn])
+            except Exception as e:
+               print('ERROR: Must have file util_files/places_scene_info.pkl for scene mapping.')
+               print('Exception: ', e)
+               for scn in scene: 
+                   print('Scene group: ', scn)
         print('\n')
+
 
 
 
