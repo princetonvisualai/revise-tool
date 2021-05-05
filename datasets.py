@@ -274,8 +274,8 @@ class OpenImagesDataset(data.Dataset):
     def __init__(self, transform):
         self.transform = transform
         
-        self.img_folder = 'Data/OpenImages/'
-        with open('Data/OpenImages/train-images-boxable-with-rotation.csv', newline='') as csvfile:
+        self.img_folder = '/n/fs/visualai-scr/Data/OpenImages/'
+        with open('/n/fs/visualai-scr/Data/OpenImages/train-images-boxable-with-rotation.csv', newline='') as csvfile:
             data = list(csv.reader(csvfile))[1:]
 
             # first line for subset of dataset, second line for full
@@ -283,12 +283,12 @@ class OpenImagesDataset(data.Dataset):
             self.image_ids = [chunk[0] for chunk in data]
         
         self.setup_anns()
-        names = list(csv.reader(open('Data/OpenImages/class-descriptions-boxable.csv', newline='')))
+        names = list(csv.reader(open('/n/fs/visualai-scr/Data/OpenImages/class-descriptions-boxable.csv', newline='')))
         self.labels_to_names = {name[0]: name[1] for name in names}
         self.categories = list(self.labels_to_names.keys())
 
         self.scene_mapping = NoneDict()
-        if os.path.exists('dataloader_files/openimages_scene_mapping.pkl'):
+        if os.path.exists('/n/fs/revise-scr/alex/revise-tool/dataloader_files/openimages_scene_mapping.pkl'):
             self.scene_mapping = pickle.load(open('dataloader_files/openimages_scene_mapping.pkl', 'rb'))
         else:
             setup_scenemapping(self, 'openimages')
@@ -319,12 +319,12 @@ class OpenImagesDataset(data.Dataset):
         return image, anns
 
     def setup_anns(self):
-        if os.path.exists('dataloader_files/openimage_anns.pkl'):
-            info = pickle.load(open('dataloader_files/openimage_anns.pkl', 'rb'))
+        if os.path.exists('/n/fs/revise-scr/alex/revise-tool/dataloader_files/openimage_anns.pkl'):
+            info = pickle.load(open('/n/fs/revise-scr/alex/revise-tool/dataloader_files/openimage_anns.pkl', 'rb'))
             self.anns = info['anns']
             self.num_gender_images = info['num_gender']
         else:
-            with open('Data/OpenImages/train-annotations-bbox.csv', newline='') as csvfile:
+            with open('/n/fs/visualai-scr/Data/OpenImages/train-annotations-bbox.csv', newline='') as csvfile:
                 data = list(csv.reader(csvfile))[1:]
                 # bbox is normalized to be between 0 and 1 and of the form [xmin, xmax, ymin, ymax]
                 # so to retrieve piece, do image[bbox[2]:bbox[3], bbox[0]:bbox[1]]
@@ -372,7 +372,7 @@ class OpenImagesDataset(data.Dataset):
             info = {}
             info['anns'] = self.anns
             info['num_gender'] = self.num_gender_images
-            pickle.dump(info, open('dataloader_files/openimage_anns.pkl', 'wb'))
+            pickle.dump(info, open('/n/fs/revise-scr/alex/revise-tool/dataloader_files/openimage_anns.pkl', 'wb'))
 
 class CoCoDataset(data.Dataset):
 
@@ -380,9 +380,9 @@ class CoCoDataset(data.Dataset):
         self.transform = transform
         
         self.supercategories_to_names = DEFAULT_GROUPINGS_TO_NAMES
-        self.img_folder = 'Data/Coco/2014data/train2014'
-        self.coco = COCO('Data/Coco/2014data/annotations/instances_train2014.json')
-        gender_data = pickle.load(open('Data/Coco/2014data/bias_splits/train.data', 'rb'))
+        self.img_folder = '/n/fs/visualai-scr/Data/Coco/2014data/train2014'
+        self.coco = COCO('/n/fs/visualai-scr/Data/Coco/2014data/annotations/instances_train2014.json')
+        gender_data = pickle.load(open('/n/fs/visualai-scr/Data/Coco/2014data/bias_splits/train.data', 'rb'))
         self.gender_info = {int(chunk['img'][15:27]): chunk['annotation'][0] for chunk in gender_data}
 
         ids = list(self.coco.anns.keys())
@@ -398,8 +398,8 @@ class CoCoDataset(data.Dataset):
         self.scene_mapping = NoneDict()
         if os.path.exists('dataloader_files/coco_scene_mapping.pkl'):
             self.scene_mapping = pickle.load(open('dataloader_files/coco_scene_mapping.pkl', 'rb'))
-        elif os.path.exists('results/coco_example/coco_scene_mapping.pkl'):
-            self.scene_mapping = pickle.load(open('results/coco_example/coco_scene_mapping.pkl', 'rb'))
+        elif os.path.exists('/n/fs/revise-scr/results/coco_example/coco_scene_mapping.pkl'):
+            self.scene_mapping = pickle.load(open('/n/fs/revise-scr/results/coco_example/coco_scene_mapping.pkl', 'rb'))
         else:
             setup_scenemapping(self, 'coco')
 
@@ -461,8 +461,8 @@ class CoCoDataset(data.Dataset):
         file_path = self.folder_path + tail
 
         image = Image.open(file_path).convert("RGB")
+        image_size = [image.size[1], image.size[0]]
         image = self.transform(image)
-        image_size = list(image.size())[1:]
 
         annIds = self.coco.getAnnIds(imgIds=image_id);
         coco_anns = self.coco.loadAnns(annIds) # coco is [x, y, width, height]
@@ -490,10 +490,9 @@ class CoCoDataset(data.Dataset):
 
     def from_path(self, file_path):
         image_id = int(os.path.basename(file_path)[-16:-4])
-
         image = Image.open(file_path).convert("RGB")
+        image_size = [image.size[1], image.size[0]]
         image = self.transform(image)
-        image_size = list(image.size())[1:]
 
         annIds = self.coco.getAnnIds(imgIds=image_id);
         coco_anns = self.coco.loadAnns(annIds) # coco is [x, y, width, height]
@@ -628,11 +627,11 @@ class ImagenetDataset(data.Dataset):
         self.transform = transform
         
         self.supercategories_to_names = DEFAULT_GROUPINGS_TO_NAMES
-        self.img_folder = 'Data/ImageNet/ILSVRC_2014_Images/ILSVRC2014_DET_train'
-        self.annotations_folder = 'Data/ImageNet/ILSVRC_2014_Annotations/ILSVRC2014_DET_bbox_train'
+        self.img_folder = '/n/fs/visualai-scr/Data/ImageNet/ILSVRC_2014_Images/ILSVRC2014_DET_train'
+        self.annotations_folder = '/n/fs/visualai-scr/Data/ImageNet/ILSVRC_2014_Annotations/ILSVRC2014_DET_bbox_train'
         self.image_ids = [str(num).zfill(8) for num in range(1, 60659)]
 
-        meta = loadmat('Data/ImageNet/ILSVRC_2014_Devkit/ILSVRC2014_devkit/data/meta_det.mat')['synsets'][0]
+        meta = loadmat('/n/fs/visualai-scr/Data/ImageNet/ILSVRC_2014_Devkit/ILSVRC2014_devkit/data/meta_det.mat')['synsets'][0]
         self.labels_to_names = {chunk[1][0]: chunk[2][0] for chunk in meta if chunk[0][0] < 201}
 
         self.categories = list(self.labels_to_names.keys())
@@ -672,22 +671,22 @@ class YfccPlacesDataset(data.Dataset):
     def __init__(self, transform, metric='obj_cnt'):
         self.transform = transform
         
-        self.img_folder = 'Data/YFCC100m/data/images'
+        self.img_folder = '/n/fs/visualai-scr/Data/YFCC100m/data/images'
 
-        self.mapping = pickle.load(open('Data/YFCC100m/yfcc_mappings.pkl', 'rb')) #7.6GB
+        self.mapping = pickle.load(open('/n/fs/visualai-scr/Data/YFCC100m/yfcc_mappings.pkl', 'rb')) #7.6GB
         self.inv_mapping = {v: k for k, v in self.mapping.items()}
 
-        df = pandas.read_csv('Data/YFCC100m/placemeta_train.csv') #1.6GB
+        df = pandas.read_csv('/n/fs/visualai-scr/Data/YFCC100m/placemeta_train.csv') #1.6GB
         self.with_country = df.loc[df['type'] == 'Country']
-        if os.path.exists('dataloader_files/yfcc_anns.pkl'): # 3.2GB
-            info = pickle.load(open('dataloader_files/yfcc_anns.pkl', 'rb')) #shuffled
+        if os.path.exists('/n/fs/revise-scr/alex/revise-tool/dataloader_files/yfcc_anns.pkl'): # 3.2GB
+            info = pickle.load(open('/n/fs/revise-scr/alex/revise-tool/dataloader_files/yfcc_anns.pkl', 'rb')) #shuffled
             self.image_ids = info['image_ids']
             self.annotations = info['annotations']
             self.alllang_ids = info['alllang']
             self.all_ids = info['all']
         else:
             self.annotations = {} # image id: annotations
-            with open('Data/YFCC100m/tag-train', 'r') as f: #1.5 GB
+            with open('/n/fs/visualai-scr/Data/YFCC100m/tag-train', 'r') as f: #1.5 GB
                 content = f.readlines()
                 for entry in content:
                     pieces = entry.split()
@@ -700,18 +699,18 @@ class YfccPlacesDataset(data.Dataset):
             self.image_ids = [an_id for an_id in self.image_ids if (an_id in self.mapping.keys() and an_id in self.annotations.keys())]
             info['annotations'] = self.annotations
             info['image_ids'] = self.image_ids
-            info['alllang'] = list(pickle.load(open('Data/YFCC100m/tags/YFCC100M/alllang_ids.pkl', 'rb')).keys()) #147M
+            info['alllang'] = list(pickle.load(open('/n/fs/visualai-scr/Data/YFCC100m/tags/YFCC100M/alllang_ids.pkl', 'rb')).keys()) #147M
             random.shuffle(info['all'])
             random.shuffle(info['image_ids'])
             random.shuffle(info['alllang'])
-            pickle.dump(info, open('dataloader_files/yfcc_anns.pkl', 'wb'))
+            pickle.dump(info, open('/n/fs/revise-scr/alex/revise-tool/dataloader_files/yfcc_anns.pkl', 'wb'))
 
 
         class KeyDict(dict):
             def __missing__(self, key):
                 return key
         self.labels_to_names = KeyDict()
-        with open('Data/YFCC100m/tags.txt', 'r') as f: # 66K
+        with open('/n/fs/visualai-scr/Data/YFCC100m/tags.txt', 'r') as f: # 66K
             content = f.readlines()
         self.categories = [x.strip() for x in content]
 
@@ -735,8 +734,8 @@ class YfccPlacesDataset(data.Dataset):
 
         if self.version == 'alllang':
             self.image_ids = self.alllang_ids
-            self.mapping_id_to_trainline = pickle.load(open('Data/YFCC100m/tags/YFCC100M/alllang_ids.pkl', 'rb'))
-            with open('Data/YFCC100m/tags/YFCC100M/train') as my_file: #19GB
+            self.mapping_id_to_trainline = pickle.load(open('/n/fs/visualai-scr/Data/YFCC100m/tags/YFCC100M/alllang_ids.pkl', 'rb'))
+            with open('/n/fs/visualai-scr/Data/YFCC100m/tags/YFCC100M/train') as my_file: #19GB
                 self.tags = my_file.readlines()
         elif self.version == 'intersect':
             pass
