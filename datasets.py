@@ -983,20 +983,20 @@ class CityScapesDataset(data.Dataset):
         # directory storing gps information
         self.gps_folder = '/Users/home/Desktop/research/data/cityscapes/vehicle_trainvaltest/vehicle/train'
 
-        # local boundary geojson file from 
+        # local boundary GeoJSON file from 
         # https://maps.princeton.edu/catalog/stanford-nh891yz3147
-        with open("/Users/home/Downloads/stanford-nh891yz3147-geojson.json") as f:
+        with open("/Users/home/Downloads/stanford-nh891yz3147-GeoJSON.json") as f:
             self.geo_boundaries = json.load(f)
 
-        # name of key representing region name within the geojson file (these key names are different for different shapefiles so it is necessary to specify to access the region name, eg. 'Bayern)
+        # name of key representing region name within the GeoJSON file (these key names are different for different shapefiles so it is necessary to specify to access the region name, eg. 'Bayern)
         self.geo_boundaries_key_name = 'name_1'    
 
-        # subregion boundaries geojson file (for global subregion analysis) from 
+        # subregion boundaries GeoJSON file (for global subregion analysis) from 
         # https://drive.google.com/drive/folders/1ot9rCqeMW61z8uY-yXw30YI_DTUzeU9Z?usp=sharing
         with open("/Users/home/Downloads/subregion_global.json") as f:
             self.subregion_boundaries = json.load(f)
 
-        # name of key representing region name within the geojson file
+        # name of key representing region name within the GeoJSON file
         self.subregion_boundaries_key_name = 'subregion'
 
         # csv data for choropleth analysis 
@@ -1114,20 +1114,20 @@ class BDD100KDataset(data.Dataset):
         # directory storing gps information
         self.gps_folder = '/Users/home/Desktop/research/data/bdd100k_info/info/100k/train'
 
-        # local boundary geojson file from 
-        # https://raw.githubusercontent.com/fedhere/PUI2015_EC/master/mam1612_EC/nyc-zip-code-tabulation-areas-polygons.geojson
+        # local boundary GeoJSON file from 
+        # https://raw.githubusercontent.com/fedhere/PUI2015_EC/master/mam1612_EC/nyc-zip-code-tabulation-areas-polygons.GeoJSON
         with open("/Users/home/Desktop/research/data/nyc_zips.json") as f:
             self.geo_boundaries = json.load(f)
 
-        # name of key representing region name within the geojson file (these key names are different for different shapefiles so it is necessary to specify to access the region name, eg. 'Bayern)
+        # name of key representing region name within the GeoJSON file (these key names are different for different shapefiles so it is necessary to specify to access the region name, eg. 'Bayern)
         self.geo_boundaries_key_name = 'postalCode'    
 
-        # subregion boundaries geojson file (for global subregion analysis) from 
+        # subregion boundaries GeoJSON file (for global subregion analysis) from 
         # https://drive.google.com/drive/folders/1ot9rCqeMW61z8uY-yXw30YI_DTUzeU9Z?usp=sharing
         with open("/Users/home/Downloads/subregion_global.json") as f:
             self.subregion_boundaries = json.load(f)
 
-        # name of key representing region name within the geojson file
+        # name of key representing region name within the GeoJSON file
         self.subregion_boundaries_key_name = 'subregion'
 
         # csv data for choropleth analysis 
@@ -1146,7 +1146,6 @@ class BDD100KDataset(data.Dataset):
         train_label_path = '/Users/home/Desktop/research/data/bdd100k_labels/labels/detection20/det_v2_train_release.json'
         self.labels = json.load(open(train_label_path))
         self.video_name_to_labels_idx = {self.labels[idx]['videoName'] : idx for idx in range(len(self.labels))}
-
 
         self.categories = ['bicycle',
                             'bus',
@@ -1198,8 +1197,6 @@ class BDD100KDataset(data.Dataset):
             lat_lng['lng'] = lng
         except:
             print("could not find lat_lng")
-
-        # self.id_to_gps[file_path]
 
         anns = [image_anns, None, [country, lat_lng], file_path, None]    
         return image, anns

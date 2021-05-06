@@ -263,6 +263,10 @@ def geo_tag_gps(dataloader, args):
     for cat in range(len(categories)):
         tag_to_region_features[cat] = copy.deepcopy(region_features)
 
+    # maps each filename id to a phrase of labels, ie "car, pedestrian, stop sign" for display
+    # when popup is clicked in interactive folium map
+    fileid_to_label_string = {}
+
     for i, (data, target) in enumerate(tqdm(dataloader)):
         if data is None:
             continue
@@ -272,6 +276,10 @@ def geo_tag_gps(dataloader, args):
         anns = target[0]
         filepath = target[3]
         this_categories = list(set([categories.index(ann['label']) for ann in anns]))
+
+        label_arr = list(set([ann['label'] for ann in anns]))
+        label_string = ", ".join(label_arr)
+        fileid_to_label_string[filepath] = label_string
 
         if region_name not in region_tags.keys():
             region_tags[region_name] = np.zeros(len(categories))
@@ -283,25 +291,27 @@ def geo_tag_gps(dataloader, args):
                 subregion_tags[subregion_name] = np.zeros(len(categories))
 
         this_features = None
+        # todo: uncomment below
+        # for cat in this_categories:
+        #     if len(tag_to_region_features[cat][region_name]) < 500:
+        #         data = normalize(data).to(device)
+        #         big_data = F.interpolate(data.unsqueeze(0), size=224, mode='bilinear').to(device)
+        #         this_features = model.forward(big_data)
+        #         break
         for cat in this_categories:
-            if len(tag_to_region_features[cat][region_name]) < 500:
-                data = normalize(data).to(device)
-                big_data = F.interpolate(data.unsqueeze(0), size=224, mode='bilinear').to(device)
-                this_features = model.forward(big_data)
-                break
-        for cat in this_categories:
+            region_tags[region_name][cat] += 1
+            if id_to_subregion is not None:
+                subregion_tags[subregion_name][cat] += 1
             if this_features is not None and len(tag_to_region_features[cat][region_name]) < 500:
                 tag_to_region_features[cat][region_name].append((this_features.data.cpu().numpy(), filepath))
-        for ann in anns:
-            region_tags[region_name][categories.index(ann['label'])] += 1
-            if id_to_subregion is not None:
-                subregion_tags[subregion_name][categories.index(ann['label'])] += 1
+        
     info_stats = {}
     info_stats['region_tags'] = region_tags
     if id_to_subregion is not None:
         print("Adding subregion tags...")
         info_stats['subregion_tags'] = subregion_tags
     info_stats['tag_to_region_features'] = tag_to_region_features
+    info_stats['fileid_to_label_string'] = fileid_to_label_string
     pickle.dump(info_stats, open("results/{}/geo_tag.pkl".format(args.folder), "wb"))
 
 # private function called from geo_tag() if dataset is of STRING_FORMATTED_LABEL + REGION_LABEL form
