@@ -17,15 +17,17 @@ def validate_dataset(dataset):
 
     # set up dataset
     try: 
+        print('starting setup')
         t = transforms.Compose([
          transforms.CenterCrop(10),
         transforms.ToTensor(),
         ])
-        ds = dataset(t)
+        ds = dataset(t) 
+        print('end setup')
     except Exception as e: 
         print('ERROR: Initialization failed before testing:', e)
         sys.exit()
-    
+    print('testing imageids')
     # testing image_ids
     try: 
         ds.image_ids 
@@ -53,7 +55,15 @@ def validate_dataset(dataset):
             print('---', str(NUM_EXS), 'random examples of human-interpretable labels in dataset ---' )
             rand_inds = random.sample(  range(len(ds.labels_to_names) - 1), NUM_EXS  )
             for rand_ind in rand_inds: 
-                print(  list(ds.labels_to_names.items())[rand_ind][1]   )
+                print(  list(ds.labels_to_names.items())[rand_ind][1]   , end='')
+                
+                try:
+                    supercat = ds.group_mapping(  list(ds.labels_to_names.items())[rand_ind][0]  )
+                    supercat_name = ds.supercategories_to_names[supercat]
+                    print('->', supercat_name)
+                except Exception as e: 
+                    print(e)
+                    pass
             print('\n')
 
 
@@ -118,7 +128,9 @@ def validate_dataset(dataset):
         print('ERROR: self.__getitem__() should return annotations of length: 5')
         print('Annotations must be a list containing [image_anns, gender_info, [country, lat_lng], file_path, scene_group]\n')
         sys.exit()
+
     labels, att, geo, fp, scn = anns
+
     if len(labels) > 1: 
         if not isinstance(labels[0], dict) or labels[0].get('label', None)==None: 
             print('ERROR: image_anns must be a list of dicts. If there are >0 dicts, must contain keyword \'label\' \n')
@@ -131,11 +143,19 @@ def validate_dataset(dataset):
         for coord in wrong_bbox: 
             print('%.2f, ' % coord, end='')
         print('\n')
-    if (len(att) != 1 and len(att) != 2) or (not isinstance(att[0], int)): 
-        print('ERROR: gender_info must be a list of length: 1 in the form [None] or [int] or length: 2 in the form [int, [double, double, double, double]]\n')
-        print('Got:', att[0]) 
-    if att[0] != 0 and att[0]!= 1: 
-        print('ERROR: gender annotations should be 0 for male, 1 for female, or None. Got value:', att[0], '\n')
+
+    print(att)
+    if att and not att[0]:
+        print('ERROR: If no attribute annotations, must be an empty list i.e. []')
+    if att: 
+        if len(att)==2 and len(att[0])!=len(att[1]): print('ERROR: length of annotation list is not equal to length of bbox list.\n')
+        try: 
+            for a in att[0]:
+                if a >= len(ds.attribute_names): print('ERROR: attribute annotation out of index for given self.attribute_names. Got value:', a, '\n')
+        except Exception as e:
+            print(e)
+            print('ERROR: self.attribute_names is a required for attribute annotations.')
+
     if len(geo) !=1 and len(geo) != 2: 
         print('ERROR: geography info must be a list of length: 1 in the form [None] or [country] or length: 2 in the form [country, lat_lng] \n')
     if len(geo) ==2 and (not isinstance(geo[1], dict) or len(geo[1])!= 2 or not geo[1].get('lat') or not geo[1].get('lng')): 
@@ -152,28 +172,32 @@ def validate_dataset(dataset):
 
         labels, attribute, geography, filepath, scene = anns
 
-        if len(labels) == 0: 
-            print('Label: No annotations for this image')
+        if not labels or len(labels) == 0: 
+            print('Label: No annotations for this image', end='')
         for label in labels: 
             curr_label = ds.labels_to_names.get(label['label'], label['label']) if len(ds.labels_to_names)!=0 else label['label']
-            print('Label:', str(curr_label), end='') 
+            print('Label:', str(curr_label), end='')
+
             if label.get('bbox'): 
                 print(', bbox: ', end='')
                 for coord in label['bbox']:
                     print("%.2f, " % coord, end='')
-            try: 
-                supercat = ds.group_mapping(label['label'])
-                supercat_name = ds.supercategories_to_names[supercat]
-                print(supercat_name, 'supercategory', end='')
-            except: 
-                pass
             print('')
 
-        if not attribute or not attribute[0]: curr_att='No annotation for this image'
-        elif attribute[0]==0: curr_att='Male'
-        elif attribute[0]==1: curr_att='Female'
-        else: curr_att='ERROR: Attribute annotation should be 0, 1, or None. Got:' + str(attribute[0])
-        print('Attribute:', curr_att + ', bbox: ' + str(attribute[1])) if len(attribute)==2 else print('Attribute:', curr_att)
+
+        if not attribute or not attribute[0]: print('Attribute: No annotation for this image', end='')
+        else: 
+            print('Attribute: ', end='')
+            atts = attribute[0]
+            bboxs = attribute[1] if len(att)>1 else None
+            for i in range(len(atts)):
+                print(str(ds.attribute_names[atts[i]]), end='')
+                if bboxs: 
+                    print(', bbox: ', end='')
+                    for coord in bboxs[i]: 
+                        print('%.2f, ' % coord, end='')
+        print('')
+
 
         for geo in geography: 
             print('Geography:', geo) if geo else print('Geography: No annotations for this image')
