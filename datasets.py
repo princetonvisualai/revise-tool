@@ -23,6 +23,9 @@ from scipy.special import softmax
 import numpy as np
 from collections import OrderedDict 
 nlp = spacy.load("en_core_web_lg")
+import json
+from tqdm import tqdm 
+import pycountry
 
 def collate_fn(batch):
     return batch[0]
@@ -63,8 +66,8 @@ def setup_scenemapping(dataset, name):
     ])
 
     scene_mapping = {}
-
-    for i, (img, target) in enumerate(dataloader):
+    print("Classify the scenes for each image")
+    for i, (img, target) in enumerate(tqdm(dataloader)):
         filepath = target[3]
         input_img = Variable(center_crop(img).unsqueeze(0)).to(device)
         logit = model.forward(input_img)
@@ -218,6 +221,9 @@ class TemplateDataset(data.Dataset):
         # List of all the labels
         self.categories = []
 
+        # Names of attribute values to analyze
+        self.attribute_names = ["Female", "Male"]
+
         # Maps from filepath to scenes
         # Can be set up by running AlexNet Places365 model by running the following command:
         # self.scene_mapping = setup_scenemapping(self, '[name of dataset]')
@@ -236,7 +242,7 @@ class TemplateDataset(data.Dataset):
         self.people_labels = []
 
         # Number of images from dataset that are female at index 0 and male at index 1 (optional, doesn't need to exist)
-        self.num_gender_images = [0, 0]
+        self.num_attribute_images = [0, 0]
         
     def __getitem__(self, index):
         image_id = self.image_ids[index]
@@ -252,10 +258,11 @@ class TemplateDataset(data.Dataset):
         image = Image.open(file_path).convert("RGB")
         image = self.transform(image)
 
-        #Note: bbox digits should be: x, y, width, height. all numbers are scaled to be between 0 and 1
-        person_bbox = None # optional
-        gender = None # optional, we have used 0 for male and 1 for female when these labels exist (yes, this order is reversed from self.num_gender_images above)
-        gender_info = [gender, person_bbox] # optional
+        #Note: person_bbox should be a list (e.g. [bbox1, bbox2]) where for each bbox digits should be: x, y, width, height. all numbers are scaled to be between 0 and 1
+        person_bbox = [None] # optional
+        #Note: gender should be in a list because attribute_based assumes each image can have more than 1 value, e.g. [attribute1, attribute2]
+        gender = [] # optional, we have used 0 for male and 1 for female when these labels exist (yes, this order is reversed from self.num_gender_images above)
+        gender_info = [gender, person_bbox] # optional Note bbox should also be a list for the same reason mentioned above for gender, e.g. [attribute1, attribute2], [bbox1, bbox2])
 
         country = None # optional
 
@@ -264,8 +271,12 @@ class TemplateDataset(data.Dataset):
 
         scene_group = self.scene_mapping[file_path] # optional
 
+        #optional. lat_lng is a dictionary with 2 keys: 'lat' and 'lng'
+        # whose values are type doubles. 
+        lat_lng = None 
+
         #Note: Gender info should not be in an array since gender_info is already array
-        anns = [image_anns, [gender_info], [country], file_path, scene_group]
+        anns = [image_anns, gender_info, [country, lat_lng], file_path, scene_group]
 
         return image, anns
 
@@ -274,8 +285,8 @@ class OpenImagesDataset(data.Dataset):
     def __init__(self, transform):
         self.transform = transform
         
-        self.img_folder = '/n/fs/visualai-scr/Data/OpenImages/'
-        with open('/n/fs/visualai-scr/Data/OpenImages/train-images-boxable-with-rotation.csv', newline='') as csvfile:
+        self.img_folder = 'Data/OpenImages/'
+        with open('Data/OpenImages/train-images-boxable-with-rotation.csv', newline='') as csvfile:
             data = list(csv.reader(csvfile))[1:]
 
             # first line for subset of dataset, second line for full
@@ -283,12 +294,13 @@ class OpenImagesDataset(data.Dataset):
             self.image_ids = [chunk[0] for chunk in data]
         
         self.setup_anns()
-        names = list(csv.reader(open('/n/fs/visualai-scr/Data/OpenImages/class-descriptions-boxable.csv', newline='')))
+        names = list(csv.reader(open('Data/OpenImages/class-descriptions-boxable.csv', newline='')))
         self.labels_to_names = {name[0]: name[1] for name in names}
         self.categories = list(self.labels_to_names.keys())
+        self.attribute_names = ["Female", "Male"]
 
         self.scene_mapping = NoneDict()
-        if os.path.exists('/n/fs/revise-scr/alex/revise-tool/dataloader_files/openimages_scene_mapping.pkl'):
+        if os.path.exists('dataloader_files/openimages_scene_mapping.pkl'):
             self.scene_mapping = pickle.load(open('dataloader_files/openimages_scene_mapping.pkl', 'rb'))
         else:
             setup_scenemapping(self, 'openimages')
@@ -319,12 +331,12 @@ class OpenImagesDataset(data.Dataset):
         return image, anns
 
     def setup_anns(self):
-        if os.path.exists('/n/fs/revise-scr/alex/revise-tool/dataloader_files/openimage_anns.pkl'):
-            info = pickle.load(open('/n/fs/revise-scr/alex/revise-tool/dataloader_files/openimage_anns.pkl', 'rb'))
+        if os.path.exists('dataloader_files/openimage_anns.pkl'):
+            info = pickle.load(open('dataloader_files/openimage_anns.pkl', 'rb'))
             self.anns = info['anns']
-            self.num_gender_images = info['num_gender']
+            self.num_attribute_images = info['num_gender']
         else:
-            with open('/n/fs/visualai-scr/Data/OpenImages/train-annotations-bbox.csv', newline='') as csvfile:
+            with open('Data/OpenImages/train-annotations-bbox.csv', newline='') as csvfile:
                 data = list(csv.reader(csvfile))[1:]
                 # bbox is normalized to be between 0 and 1 and of the form [xmin, xmax, ymin, ymax]
                 # so to retrieve piece, do image[bbox[2]:bbox[3], bbox[0]:bbox[1]]
@@ -337,7 +349,7 @@ class OpenImagesDataset(data.Dataset):
                     else:
                         self.anns[chunk[0]] = [new_ann]
 
-            self.num_gender_images = [0, 0]
+            self.num_attribute_images = [0, 0]
             men = ['/m/01bl7v', '/m/04yx4']
             women = ['/m/03bt1vf', '/m/05r655']
             for key in self.anns.keys():
@@ -362,17 +374,17 @@ class OpenImagesDataset(data.Dataset):
                             biggest_bbox = this_bbox
 
                 if m_presence > 0 and w_presence == 0:
-                    self.anns[key] = [self.anns[key], [2, biggest_bbox], [0]]
-                    self.num_gender_images[1] += 1
+                    self.anns[key] = [self.anns[key], [[1], [biggest_bbox]], [0]]
+                    self.num_attribute_images[1] += 1
                 elif w_presence > 0 and m_presence == 0:
-                    self.anns[key] = [self.anns[key], [1, biggest_bbox], [0]]
-                    self.num_gender_images[0] += 1
+                    self.anns[key] = [self.anns[key], [[0], [biggest_bbox]], [0]]
+                    self.num_attribute_images[0] += 1
                 else:
                     self.anns[key] = [self.anns[key], [0], [0]]
             info = {}
             info['anns'] = self.anns
-            info['num_gender'] = self.num_gender_images
-            pickle.dump(info, open('/n/fs/revise-scr/alex/revise-tool/dataloader_files/openimage_anns.pkl', 'wb'))
+            info['num_gender'] = self.num_attribute_images
+            pickle.dump(info, open('dataloader_files/openimage_anns.pkl', 'wb'))
 
 class CoCoDataset(data.Dataset):
 
@@ -380,10 +392,10 @@ class CoCoDataset(data.Dataset):
         self.transform = transform
         
         self.supercategories_to_names = DEFAULT_GROUPINGS_TO_NAMES
-        self.img_folder = '/n/fs/visualai-scr/Data/Coco/2014data/train2014'
-        self.coco = COCO('/n/fs/visualai-scr/Data/Coco/2014data/annotations/instances_train2014.json')
-        gender_data = pickle.load(open('/n/fs/visualai-scr/Data/Coco/2014data/bias_splits/train.data', 'rb'))
-        self.gender_info = {int(chunk['img'][15:27]): chunk['annotation'][0] for chunk in gender_data}
+        self.img_folder = 'Data/Coco/2014data/train2014'
+        self.coco = COCO('Data/Coco/2014data/annotations/instances_train2014.json')
+        gender_data = pickle.load(open('Data/Coco/2014data/bias_splits/train.data', 'rb'))
+        self.attribute_data = {int(chunk['img'][15:27]): chunk['annotation'][0] for chunk in gender_data}
 
         ids = list(self.coco.anns.keys())
         self.image_ids = list(set([self.coco.anns[this_id]['image_id'] for this_id in ids]))
@@ -394,12 +406,17 @@ class CoCoDataset(data.Dataset):
             self.labels_to_names[cat['id']] = cat['name']
 
         self.categories = list(self.labels_to_names.keys())
-
+        self.attribute_names = ["Female", "Male"]
         self.scene_mapping = NoneDict()
+
+        # If attribute is ordinal (increases or decreases along an axis i.e. skin tone/age), set self.ordinal = True and define self.axis = [integers with indexed order of attributes]
+        self.ordinal = False
+        self.axis = []
+
         if os.path.exists('dataloader_files/coco_scene_mapping.pkl'):
             self.scene_mapping = pickle.load(open('dataloader_files/coco_scene_mapping.pkl', 'rb'))
-        elif os.path.exists('/n/fs/revise-scr/results/coco_example/coco_scene_mapping.pkl'):
-            self.scene_mapping = pickle.load(open('/n/fs/revise-scr/results/coco_example/coco_scene_mapping.pkl', 'rb'))
+        elif os.path.exists('results/coco_example/coco_scene_mapping.pkl'):
+            self.scene_mapping = pickle.load(open('results/coco_example/coco_scene_mapping.pkl', 'rb'))
         else:
             setup_scenemapping(self, 'coco')
 
@@ -431,7 +448,7 @@ class CoCoDataset(data.Dataset):
         self.group_mapping = mapping # takes in label name, so from self.categories
 
         self.people_labels = [1] # instances of self.categories
-        self.num_gender_images = [6642, 16324]
+        self.num_attribute_images = [6642, 16324]
         
     def __getitem__(self, index):
         image_id = self.image_ids[index]
@@ -460,7 +477,7 @@ class CoCoDataset(data.Dataset):
         _, tail = os.path.split(file_path)
         file_path = self.folder_path + tail
 
-        image = Image.open(file_path).convert("RGB")
+        image = Image.open(file_path).convert("RGB") 
         image_size = [image.size[1], image.size[0]]
         image = self.transform(image)
 
@@ -482,14 +499,15 @@ class CoCoDataset(data.Dataset):
                     biggest_bbox = bbox
 
         scene = self.scene_mapping.get(original_file_path, None)
-        if biggest_bbox != 0 and image_id in self.gender_info.keys():
-            anns = [formatted_anns, [self.gender_info[image_id] + 1, biggest_bbox], [0], file_path, scene]
+        if biggest_bbox != 0 and image_id in self.attribute_data.keys():
+            anns = [formatted_anns, [[self.attribute_data[image_id]], [biggest_bbox]], [0], file_path, scene]
         else:
-            anns = [formatted_anns, [0], [0], file_path, scene]
+            anns = [formatted_anns, [], [0], file_path, scene]
         return image, anns        
 
     def from_path(self, file_path):
         image_id = int(os.path.basename(file_path)[-16:-4])
+
         image = Image.open(file_path).convert("RGB")
         image_size = [image.size[1], image.size[0]]
         image = self.transform(image)
@@ -512,10 +530,10 @@ class CoCoDataset(data.Dataset):
                     biggest_bbox = bbox
 
         scene = self.scene_mapping.get(file_path, None)
-        if biggest_bbox != 0 and image_id in self.gender_info.keys():
-            anns = [formatted_anns, [self.gender_info[image_id] + 1, biggest_bbox], [0], file_path, scene]
+        if biggest_bbox != 0 and image_id in self.attribute_data.keys():
+            anns = [formatted_anns, [[self.attribute_data[image_id]], [biggest_bbox]], [0], file_path, scene]
         else:
-            anns = [formatted_anns, [0], [0], file_path, scene]
+            anns = [formatted_anns, [], [0], file_path, scene]
 
         return image, anns
     
@@ -563,7 +581,7 @@ class CoCoDatasetNoImages(data.Dataset):
         self.group_mapping = mapping # takes in label name, so from self.categories
 
         self.people_labels = [1] # instances of self.categories
-        self.num_gender_images = [6642, 16324]
+        self.num_attribute_images = [6642, 16324]
 
 class SUNDataset(data.Dataset):
 
@@ -627,11 +645,11 @@ class ImagenetDataset(data.Dataset):
         self.transform = transform
         
         self.supercategories_to_names = DEFAULT_GROUPINGS_TO_NAMES
-        self.img_folder = '/n/fs/visualai-scr/Data/ImageNet/ILSVRC_2014_Images/ILSVRC2014_DET_train'
-        self.annotations_folder = '/n/fs/visualai-scr/Data/ImageNet/ILSVRC_2014_Annotations/ILSVRC2014_DET_bbox_train'
+        self.img_folder = 'Data/ImageNet/ILSVRC_2014_Images/ILSVRC2014_DET_train'
+        self.annotations_folder = 'Data/ImageNet/ILSVRC_2014_Annotations/ILSVRC2014_DET_bbox_train'
         self.image_ids = [str(num).zfill(8) for num in range(1, 60659)]
 
-        meta = loadmat('/n/fs/visualai-scr/Data/ImageNet/ILSVRC_2014_Devkit/ILSVRC2014_devkit/data/meta_det.mat')['synsets'][0]
+        meta = loadmat('Data/ImageNet/ILSVRC_2014_Devkit/ILSVRC2014_devkit/data/meta_det.mat')['synsets'][0]
         self.labels_to_names = {chunk[1][0]: chunk[2][0] for chunk in meta if chunk[0][0] < 201}
 
         self.categories = list(self.labels_to_names.keys())
@@ -669,24 +687,26 @@ class ImagenetDataset(data.Dataset):
 class YfccPlacesDataset(data.Dataset):
     
     def __init__(self, transform, metric='obj_cnt'):
+        self.geography_info_type = "STRING_FORMATTED_LABEL" # GPS_LABEL or STRING_FORMATTED_LABEL
+
         self.transform = transform
         
-        self.img_folder = '/n/fs/visualai-scr/Data/YFCC100m/data/images'
+        self.img_folder = 'Data/YFCC100m/data/images'
 
-        self.mapping = pickle.load(open('/n/fs/visualai-scr/Data/YFCC100m/yfcc_mappings.pkl', 'rb')) #7.6GB
+        self.mapping = pickle.load(open('Data/YFCC100m/yfcc_mappings.pkl', 'rb')) #7.6GB
         self.inv_mapping = {v: k for k, v in self.mapping.items()}
 
-        df = pandas.read_csv('/n/fs/visualai-scr/Data/YFCC100m/placemeta_train.csv') #1.6GB
+        df = pandas.read_csv('Data/YFCC100m/placemeta_train.csv') #1.6GB
         self.with_country = df.loc[df['type'] == 'Country']
-        if os.path.exists('/n/fs/revise-scr/alex/revise-tool/dataloader_files/yfcc_anns.pkl'): # 3.2GB
-            info = pickle.load(open('/n/fs/revise-scr/alex/revise-tool/dataloader_files/yfcc_anns.pkl', 'rb')) #shuffled
+        if os.path.exists('dataloader_files/yfcc_anns.pkl'): # 3.2GB
+            info = pickle.load(open('dataloader_files/yfcc_anns.pkl', 'rb')) #shuffled
             self.image_ids = info['image_ids']
             self.annotations = info['annotations']
             self.alllang_ids = info['alllang']
             self.all_ids = info['all']
         else:
             self.annotations = {} # image id: annotations
-            with open('/n/fs/visualai-scr/Data/YFCC100m/tag-train', 'r') as f: #1.5 GB
+            with open('Data/YFCC100m/tag-train', 'r') as f: #1.5 GB
                 content = f.readlines()
                 for entry in content:
                     pieces = entry.split()
@@ -699,26 +719,46 @@ class YfccPlacesDataset(data.Dataset):
             self.image_ids = [an_id for an_id in self.image_ids if (an_id in self.mapping.keys() and an_id in self.annotations.keys())]
             info['annotations'] = self.annotations
             info['image_ids'] = self.image_ids
-            info['alllang'] = list(pickle.load(open('/n/fs/visualai-scr/Data/YFCC100m/tags/YFCC100M/alllang_ids.pkl', 'rb')).keys()) #147M
+            info['alllang'] = list(pickle.load(open('Data/YFCC100m/tags/YFCC100M/alllang_ids.pkl', 'rb')).keys()) #147M
             random.shuffle(info['all'])
             random.shuffle(info['image_ids'])
             random.shuffle(info['alllang'])
-            pickle.dump(info, open('/n/fs/revise-scr/alex/revise-tool/dataloader_files/yfcc_anns.pkl', 'wb'))
+            pickle.dump(info, open('dataloader_files/yfcc_anns.pkl', 'wb'))
 
+        # Distinguish between global geography labels vs region geography labels
+        country_check_arr = set()
+        for image_id in self.image_ids:
+            if len(country_check_arr) > 2:
+                # break if more than 2 distinct potential "countries"
+                break
+            country = self.with_country.loc[self.with_country['photoid'] == int(image_id)]['placename'].values
+            if len(country) > 1:
+                country = country[list(country).index('United+Kingdom')]
+            else:
+                country = country[0]
+            country_check_arr.add(country)
+
+        self.geography_label_string_type = "COUNTRY_LABEL"
+        for potential_country in country_check_arr:
+            try:
+                pycountry.countries.search_fuzzy(potential_country.replace('+', ' '))
+            except LookupError:
+                geography_label_string_type = "REGION_LABEL"
+                break
 
         class KeyDict(dict):
             def __missing__(self, key):
                 return key
         self.labels_to_names = KeyDict()
-        with open('/n/fs/visualai-scr/Data/YFCC100m/tags.txt', 'r') as f: # 66K
+        with open('Data/YFCC100m/tags.txt', 'r') as f: # 66K
             content = f.readlines()
         self.categories = [x.strip() for x in content]
 
-        #self.scene_mapping = NoneDict()
-        #if os.path.exists('dataloader_files/yfcc_scene_mapping.pkl'):
-        #    self.scene_mapping = pickle.load(open('dataloader_files/yfcc_scene_mapping.pkl', 'rb'))
-        #else:
-        #    setup_scenemapping(self, 'yfcc')
+        self.scene_mapping = NoneDict()
+        if os.path.exists('dataloader_files/yfcc_scene_mapping.pkl'):
+           self.scene_mapping = pickle.load(open('dataloader_files/yfcc_scene_mapping.pkl', 'rb'))
+        else:
+           setup_scenemapping(self, 'yfcc')
 
         self.group_mapping = None
         self.people_labels = []
@@ -734,8 +774,8 @@ class YfccPlacesDataset(data.Dataset):
 
         if self.version == 'alllang':
             self.image_ids = self.alllang_ids
-            self.mapping_id_to_trainline = pickle.load(open('/n/fs/visualai-scr/Data/YFCC100m/tags/YFCC100M/alllang_ids.pkl', 'rb'))
-            with open('/n/fs/visualai-scr/Data/YFCC100m/tags/YFCC100M/train') as my_file: #19GB
+            self.mapping_id_to_trainline = pickle.load(open('Data/YFCC100m/tags/YFCC100M/alllang_ids.pkl', 'rb'))
+            with open('Data/YFCC100m/tags/YFCC100M/train') as my_file: #19GB
                 self.tags = my_file.readlines()
         elif self.version == 'intersect':
             pass
@@ -810,6 +850,7 @@ class CelebADataset(data.Dataset):
                 self.image_ids.append(stripped_line[0])
         
         print("done with ids (1/4 dataset steps)")
+        self.attribute_names = ["Female", "Male"]
 
         # List of all the labels (e.g. Young, mustache)
         count = 0
@@ -841,7 +882,7 @@ class CelebADataset(data.Dataset):
         self.people_labels = []
         
         #Needs to exist for gender analysis
-        self.num_gender_images = [0, 0]
+        self.num_attribute_images = [0, 0]
         count = 0
         with open('Anno/list_attr_celeba.txt') as f:
             for line in f:
@@ -851,13 +892,13 @@ class CelebADataset(data.Dataset):
                     image_values = stripped_line[1:]
                     gender = int(image_values[20])
                     if gender > 0:
-                        self.num_gender_images[1] += 1
+                        self.num_attribute_images[1] += 1
                     else:
-                        self.num_gender_images[0] += 1
+                        self.num_attribute_images[0] += 1
                 count += 1
                 
         print("done with gender counting (4/4 dataset steps)")
-        print(self.num_gender_images)
+        print(self.num_attribute_images)
         
     def __getitem__(self, index):
         image_id = self.image_ids[index]
@@ -911,10 +952,146 @@ class CelebADataset(data.Dataset):
         else:
             gender = 0
         
-        gender_info = [gender, bbox_digits]
+        gender_info = [[gender], [bbox_digits]]
        
         scene_group = self.scene_mapping[file_path]
         #Note: Gender info should not be in array since gender_info is already array
         anns = [image_anns, gender_info, [country], file_path, scene_group]
 
+        return image, anns
+
+'''
+Dataset can be downloaded here: 
+https://www.cityscapes-dataset.com/downloads/
+
+After creating an account, you download the image data: 
+gtFine_trainvaltest.zip (241MB) [md5]
+
+and the gps data:
+vehicle_trainvaltest.zip (2MB) [md5]
+'''
+class CityScapesDataset(data.Dataset):
+
+    def __init__(self, transform): 
+        self.transform = transform
+        self.img_folder = '/Users/home/Desktop/research/data/cityscapes/gtFine_trainvaltest/gtFine/train'
+
+        self.geography_info_type = "GPS_LABEL" # GPS_LABEL or STRING_FORMATTED_LABEL
+
+        self.geography_label_string_type = None # auto initialized to "COUNTRY_LABEL" or "REGION_LABEL" if geography_info_type is "STRING_FORMATTED_LABEL"
+
+        # directory storing gps information
+        self.gps_folder = '/Users/home/Desktop/research/data/cityscapes/vehicle_trainvaltest/vehicle/train'
+
+        # local boundary shapefile from 
+        # https://maps.princeton.edu/catalog/stanford-nh891yz3147
+        with open("/Users/home/Downloads/stanford-nh891yz3147-geojson.json") as f:
+            self.geo_boundaries = json.load(f)
+
+        # name of key representing region name within the shapefile (these key names are different for different shapefiles so it is necessary to specify to access the region name, eg. 'Bayern)
+        self.geo_boundaries_key_name = 'name_1'    
+
+        # subregion boundaries shapefile (for global subregion analysis) from 
+        # https://drive.google.com/drive/folders/1ot9rCqeMW61z8uY-yXw30YI_DTUzeU9Z?usp=sharing
+        with open("/Users/home/Downloads/subregion_global.json") as f:
+            self.subregion_boundaries = json.load(f)
+
+        # name of key representing region name within the shapefile
+        self.subregion_boundaries_key_name = 'subregion'
+
+        # csv data for choropleth analysis 
+        # CSV is comprised of 2 columns: 
+        # colname1='Region' (string format of region name, eg. 'Bayern')
+        # colname2='Data' (double format of data of interest, eg. 3.14)
+        self.choropleth_filepath = "/Users/home/Downloads/data.csv"
+
+        # store all of the city names in array [aachen, bochum, etc]
+        self.city_names = os.listdir(self.gps_folder)
+        self.city_names.remove('.DS_Store')
+
+        # Adds the title of the image as its ID 
+        # (e.g. aachen/aachen_000000_000019_gtFine_color.png = aachen/aachen_000000_000019)
+        self.image_ids = []
+        for city in self.city_names:
+            filename_path = os.path.join(self.gps_folder, city)
+            city_filenames = os.listdir(filename_path)
+            self.image_ids = self.image_ids +  [os.path.join(city, name.split("_vehicle")[0]) for name in city_filenames]
+        print("done with ids (1/2)")
+
+        self.categories = ['unlabeled',
+            'ego vehicle',
+            'rectification border',
+            'out of roi',
+            'static',
+            'dynamic',
+            'ground',
+            'road',
+            'sidewalk',
+            'parking',
+            'rail track',
+            'building',
+            'wall',
+            'fence',
+            'guard rail',
+            'bridge',
+            'tunnel',
+            'pole',
+            'polegroup',
+            'traffic light',
+            'traffic sign',
+            'vegetation',
+            'rider',
+            'truckgroup',
+            'terrain',
+            'sky',
+            'person',
+            'persongroup',
+            'bicyclegroup',
+            'motorcyclegroup',
+            'rider',
+            'ridergroup',
+            'car',
+            'cargroup',
+            'truck',
+            'bus',
+            'caravan',
+            'trailer',
+            'train',
+            'motorcycle',
+            'bicycle',
+            'license plate']
+        self.labels_to_names = {i : i for i in self.categories}
+        print("done with categories (2/2)")
+
+    def __getitem__(self, index):
+        image_id = self.image_ids[index]
+        return self.from_path(image_id)
+    
+    def __len__(self):
+        return len(self.image_ids)
+    
+    def from_path(self, file_path):
+        image_id = os.path.join(self.img_folder, "{0}_gtFine_color.png".format(file_path))
+        image = Image.open(image_id).convert("RGB")
+        image = self.transform(image)
+        country = None
+        # for each image, get category information
+        image_anns = []
+
+        category_path = os.path.join(self.img_folder, "{0}_gtFine_polygons.json".format(file_path))
+        category_data = json.load(open(category_path)).get('objects', [])
+
+        for i in range(len(category_data)):
+            label = category_data[i].get('label', None)
+            if label is not None:
+                image_anns.append({'label': label})
+
+        # for each image, get long lat gps information
+        lat_lng = {}
+        json_data = json.load(open(os.path.join(self.gps_folder, "{0}_vehicle.json".format(file_path))))
+        if json_data is not None and "gpsLatitude" in json_data and "gpsLongitude" in json_data:
+            lat_lng['lat'] = json_data["gpsLatitude"]
+            lat_lng['lng'] = json_data["gpsLongitude"]
+
+        anns = [image_anns, None, [country, lat_lng], file_path, None]    
         return image, anns
