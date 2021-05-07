@@ -144,7 +144,6 @@ def validate_dataset(dataset):
             print('%.2f, ' % coord, end='')
         print('\n')
 
-    print(att)
     if att and not att[0]:
         print('ERROR: If no attribute annotations, must be an empty list i.e. []')
     if att: 
