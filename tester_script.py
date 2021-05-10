@@ -42,31 +42,6 @@ def validate_dataset(dataset):
         rand_inds = random.sample(  range(len(ds.image_ids) - 1), NUM_EXS  )
 
 
-    # testing labels_to_names
-    try: 
-        ds.labels_to_names
-    except AttributeError: 
-        print('ERROR: self.labels_to_names is a required field.')
-    if not isinstance(ds.labels_to_names, dict): 
-        print('---- Labels_to_names must be type: dict ---') 
-        print('ERROR: Currently of type:', type(ds.labels_to_names), '\n')
-    else: 
-        if len(ds.labels_to_names) != 0:
-            print('---', str(NUM_EXS), 'random examples of human-interpretable labels in dataset ---' )
-            rand_inds = random.sample(  range(len(ds.labels_to_names) - 1), NUM_EXS  )
-            for rand_ind in rand_inds: 
-                print(  list(ds.labels_to_names.items())[rand_ind][1]   , end='')
-                
-                try:
-                    supercat = ds.group_mapping(  list(ds.labels_to_names.items())[rand_ind][0]  )
-                    supercat_name = ds.supercategories_to_names[supercat]
-                    print('->', supercat_name)
-                except Exception as e: 
-                    print(e)
-                    pass
-            print('\n')
-
-
     # testing categories
     try: 
         ds.categories
@@ -78,6 +53,36 @@ def validate_dataset(dataset):
     else: 
         print('---- Total number of labels in the dataset ---')
         print( str(len(ds.categories)),  '\n')
+
+
+
+    # testing labels_to_names
+    try: 
+        ds.labels_to_names
+    except AttributeError: 
+        print('ERROR: self.labels_to_names is a required field.')
+    if not isinstance(ds.labels_to_names, dict): 
+        print('---- Labels_to_names must be type: dict ---') 
+        print('ERROR: Currently of type:', type(ds.labels_to_names), '\n')
+    else: 
+        print('---', str(NUM_EXS), 'random examples of human-interpretable labels in dataset ---' )
+        len_labels = len(ds.labels_to_names) if len(ds.labels_to_names)!=0 else len(ds.categories)
+        rand_inds = random.sample(  range(len_labels - 1), NUM_EXS  )
+        for rand_ind in rand_inds:  
+  
+            try:
+                supercat = ds.group_mapping(  list(ds.labels_to_names.items())[rand_ind][0]  )
+                supercat_name = ds.supercategories_to_names[supercat]
+                print(  ds.labels_to_names[ds.categories[rand_ind]], '->', supercat_name)
+                scflag=True
+            except Exception as e:
+                print( ds.labels_to_names[ds.categories[rand_ind]] )
+                scflag=False
+                pass
+        if scflag: print('Key: [label] -> [supercategory]')
+  
+        print('\n')
+
 
 
     # testing scene mappings 
@@ -95,7 +100,7 @@ def validate_dataset(dataset):
             print('ERROR: self.supercategories_to_names must be type: dict \n')
     except AttributeError:
         print('ERROR: self.supercategories_to_names is a required field.')
-        print('Default to DEFAULT_GROUPINGS_TO_NAMES\n')
+        print('Please set self.categories_to_names = DEFAULT_GROUPINGS_TO_NAMES \n')
 
     
     # testing __len__:
@@ -145,8 +150,10 @@ def validate_dataset(dataset):
         print('\n')
 
     if att and not att[0]:
-        print('ERROR: If no attribute annotations, must be an empty list i.e. []')
-    if att: 
+        print('ERROR: If no attribute annotations, must be an empty list i.e. [], got:', att, '\n')
+    if att and not isinstance(att[0], list): 
+        print('ERROR: Attribute annotation must be in a list, got:', att[0], '\n')
+    elif att and isinstance(att[0], list):
         if len(att)==2 and len(att[0])!=len(att[1]): print('ERROR: length of annotation list is not equal to length of bbox list.\n')
         try: 
             for a in att[0]:
