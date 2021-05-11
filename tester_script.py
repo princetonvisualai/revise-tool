@@ -55,36 +55,6 @@ def validate_dataset(dataset):
         print( str(len(ds.categories)),  '\n')
 
 
-
-    # testing labels_to_names
-    try: 
-        ds.labels_to_names
-    except AttributeError: 
-        print('ERROR: self.labels_to_names is a required field.')
-    if not isinstance(ds.labels_to_names, dict): 
-        print('---- Labels_to_names must be type: dict ---') 
-        print('ERROR: Currently of type:', type(ds.labels_to_names), '\n')
-    else: 
-        print('---', str(NUM_EXS), 'random examples of human-interpretable labels in dataset ---' )
-        len_labels = len(ds.labels_to_names) if len(ds.labels_to_names)!=0 else len(ds.categories)
-        rand_inds = random.sample(  range(len_labels - 1), NUM_EXS  )
-        for rand_ind in rand_inds:  
-  
-            try:
-                supercat = ds.group_mapping(  list(ds.labels_to_names.items())[rand_ind][0]  )
-                supercat_name = ds.supercategories_to_names[supercat]
-                print(  ds.labels_to_names[ds.categories[rand_ind]], '->', supercat_name)
-                scflag=True
-            except Exception as e:
-                print( ds.labels_to_names[ds.categories[rand_ind]] )
-                scflag=False
-                pass
-        if scflag: print('Key: [label] -> [supercategory]')
-  
-        print('\n')
-
-
-
     # testing scene mappings 
     try:
         if not isinstance(ds.scene_mapping, dict):
@@ -101,6 +71,34 @@ def validate_dataset(dataset):
     except AttributeError:
         print('ERROR: self.supercategories_to_names is a required field.')
         print('Please set self.categories_to_names = DEFAULT_GROUPINGS_TO_NAMES \n')
+
+
+    # testing labels_to_names
+    try: 
+        ds.labels_to_names
+    except AttributeError: 
+        print('ERROR: self.labels_to_names is a required field.')
+    if not isinstance(ds.labels_to_names, dict): 
+        print('---- Labels_to_names must be type: dict ---') 
+        print('ERROR: Currently of type:', type(ds.labels_to_names), '\n')
+    else: 
+
+        print('---', str(NUM_EXS), 'random examples of [label] -> [supercategory] ---' )
+        len_labels = len(ds.labels_to_names) if len(ds.labels_to_names)!=0 else len(ds.categories)
+        rand_inds = random.sample(  range(len_labels - 1), NUM_EXS  )
+        for rand_ind in rand_inds:  
+  
+            try:
+                supercat = ds.group_mapping(  list(ds.labels_to_names.items())[rand_ind][0]  )
+                supercat_name = ds.supercategories_to_names[supercat]
+                print(  ds.labels_to_names[ds.categories[rand_ind]], '->', supercat_name)
+                scflag=True
+            except Exception as e:
+                print( ds.labels_to_names[ds.categories[rand_ind]] )
+                scflag=False
+        if not scflag: print('ERROR: self.supercategories not set up correctly so supercategories not displayed.')
+        print('\n')
+
 
     
     # testing __len__:
@@ -174,7 +172,7 @@ def validate_dataset(dataset):
         img, anns = ds.__getitem__(rand_inds[i]) 
         img = img.permute(1, 2, 0).numpy()
         cv2.imwrite('tester_script_out/example_' + str(i) + '.jpg', img)                 #need to generalize 
-        print('-- sample annotations for example_' + str(i) + '.jpg in tester_script_out ---') 
+        print('--- Annotations for example_' + str(i) + '.jpg in tester_script_out ---') 
 
         labels, attribute, geography, filepath, scene = anns
 
