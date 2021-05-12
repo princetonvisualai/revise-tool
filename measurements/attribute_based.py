@@ -40,7 +40,7 @@ def detect_face(filepath, info, client):
     return info
 
 #Note: attribute possible values and names are passed in with args: --attribute_values '2' --attribute_names 'male female'
-def size_and_distance(dataloader, args):
+def att_siz(dataloader, args):
     num_attrs = len(dataloader.dataset.attribute_names)
 
     sizes = [[] for i in range(num_attrs)]
@@ -62,56 +62,71 @@ def size_and_distance(dataloader, args):
             detect_info = {}
     elif FACE_DETECT == 1:
         cascPath = "util_files/haarcascade_frontalface_default.xml"
-        faceCascade = cv2.CascadeClassifier(cv2.data.haarcascades + cascPath)
-
+        try:
+            faceCascade = cv2.CascadeClassifier(cv2.data.haarcascades + cascPath)
+        except AttributeError:
+            faceCascade = cv2.CascadeClassifier(cascPath)
+        
     for i, (data, target) in enumerate(tqdm(dataloader)):
         attribute = target[1]
+        file_path = target[3]
         # Only look at image if there is an attribute to analyze (Note attribute require a bbox around the person or thing to analyze)
         if len(attribute)> 1:
             shape = list(data.size())[1:]
-            bbox = attribute[1]
-            bbox_adjust = np.array([bbox[0]*shape[1], bbox[1]*shape[1], bbox[2]*shape[0], bbox[3]*shape[0]])
-            pixel_size = (bbox_adjust[1]-bbox_adjust[0])*(bbox_adjust[3]-bbox_adjust[2])
-            size = (bbox[1]-bbox[0])*(bbox[3]-bbox[2])
-            person_center = np.array([bbox[0] + (bbox[1]/2.), bbox[2] + (bbox[3]/2.)])
-            distance = np.linalg.norm(person_center - img_center)
-            pic = data.data.cpu().numpy()
+            for index in range(len(attribute[1])):
+                bbox = attribute[1][index]
+                att = attribute[0][index]
+                bbox_adjust = np.array([bbox[0]*shape[1], bbox[1]*shape[1], bbox[2]*shape[0], bbox[3]*shape[0]])
+                pixel_size = (bbox_adjust[1]-bbox_adjust[0])*(bbox_adjust[3]-bbox_adjust[2])
+                size = (bbox[1]-bbox[0])*(bbox[3]-bbox[2])
+                person_center = np.array([bbox[0] + (bbox[1]/2.), bbox[2] + (bbox[3]/2.)])
+                distance = np.linalg.norm(person_center - img_center)
+                pic = data.data.cpu().numpy()
 
-            if FACE_DETECT == 0:
-                detect_info = detect_face(target[3], detect_info, client)
-                faceDetails = detect_info[target[3]]['FaceDetails']
-                if len(detect_info) % 20 == 0:
-                    pickle.dump(detect_info, open('{}_rekognitioninfo.pkl'.format(args.folder), 'wb'))
+                if FACE_DETECT == 0:
+                    detect_info = detect_face(target[3], detect_info, client)
+                    faceDetails = detect_info[target[3]]['FaceDetails']
+                    if len(detect_info) % 20 == 0:
+                        pickle.dump(detect_info, open('{}_rekognitioninfo.pkl'.format(args.folder), 'wb'))
 
-                yes_face = False
-                for face in faceDetails:
-                    if face['Confidence'] > .9:
+                    yes_face = False
+                    for face in faceDetails:
+                        if face['Confidence'] > .9:
+                            yes_face = True
+                elif FACE_DETECT == 1:
+                    image = cv2.imread(target[3])
+                    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+                    try:
+                        faces = faceCascade.detectMultiScale(
+                        gray,
+                        scaleFactor=1.1,
+                        minNeighbors=5,
+                        #minSize=(30, 30),
+                        flags = cv2.CASCADE_SCALE_IMAGE
+                        )
+                    except cv2.error as e:
+                        faceCascade = cv2.CascadeClassifier(cascPath)
+                        faces = faceCascade.detectMultiScale(
+                        gray,
+                        scaleFactor=1.1,
+                        minNeighbors=5,
+                        #minSize=(30, 30),
+                        flags = cv2.CASCADE_SCALE_IMAGE
+                        )
+                    yes_face = False
+                    if len(faces) > 0:
                         yes_face = True
-            elif FACE_DETECT == 1:
-                image = cv2.imread(target[3])
-                gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-                faces = faceCascade.detectMultiScale(
-                   gray,
-                   scaleFactor=1.1,
-                   minNeighbors=5,
-                   #minSize=(30, 30),
-                   flags = cv2.CASCADE_SCALE_IMAGE
-                )
-                yes_face = False
-                if len(faces) > 0:
-                    yes_face = True
 
-            # If there's no face detected and the person is too small, attribute cannot be distinguished
-            if not yes_face or pixel_size < 1000.:
-                scene_group = target[4]
-                if not yes_face:
-                    no_faces[attribute[0]].append((size, pixel_size, scene_group))
-                elif pixel_size < 1000.:
-                    tiny_sizes[attribute[0]].append((size, scene_group))
-                continue
-
-            sizes[attribute[0]].append(size)
-            distances[attribute[0]].append(distance)
+                # If there's no face detected and the person is too small, attribute cannot be distinguished
+                if not yes_face or pixel_size < 1000.:
+                    scene_group = target[4]
+                    if not yes_face:
+                        no_faces[att].append(((size, pixel_size, scene_group), (file_path, index)))
+                    elif pixel_size < 1000.:        
+                        tiny_sizes[att].append(((size, scene_group), (file_path, index)))
+                    continue
+                sizes[att].append((size, (file_path, index)))
+                distances[att].append((distance, (file_path, index)))
 
     if FACE_DETECT == 0:
         pickle.dump(detect_info, open('{}_rekognitioninfo.pkl'.format(args.folder), 'wb'))
@@ -125,7 +140,7 @@ def size_and_distance(dataloader, args):
 
     pickle.dump(stats, open("results/{}/att_siz.pkl".format(args.folder), "wb"))
 
-def count_cooccurrence(dataloader, args):
+def att_cnt(dataloader, args):
     num_attrs = len(dataloader.dataset.attribute_names)
 
     counts = [{} for i in range(num_attrs)]
@@ -139,20 +154,56 @@ def count_cooccurrence(dataloader, args):
             
     for i, (data, target) in enumerate(tqdm(dataloader)):
         attribute = target[1]
-        
         anns = target[0]
         if len(attribute) > 1:
             categories = list(set([ann['label'] for ann in anns]))
             for a in range(len(categories)):
                 cat_a = dataloader.dataset.categories.index(categories[a])
-                counts[attribute[0]]["{0}-{1}".format(cat_a, cat_a)] += 1
+                for att in attribute[0]:
+                    counts[att]["{0}-{1}".format(cat_a, cat_a)] += 1
                 for b in range(a+1, len(categories)):
                     cat_b = dataloader.dataset.categories.index(categories[b])
                     if cat_a < cat_b:
-                        counts[attribute[0]]["{0}-{1}".format(cat_a, cat_b)] += 1
+                        for att in attribute[0]:
+                            counts[att]["{0}-{1}".format(cat_a, cat_b)] += 1
                     else:
-                        counts[attribute[0]]["{0}-{1}".format(cat_b, cat_a)] += 1
+                        for att in attribute[0]:
+                            counts[att]["{0}-{1}".format(cat_b, cat_a)] += 1
+
     pickle.dump(counts, open("results/{}/att_cnt.pkl".format(args.folder), "wb"))
+
+def att_dis(dataloader, args):
+    categories = dataloader.dataset.categories
+    attr_names = dataloader.dataset.attribute_names
+    num_attrs = len(attr_names)
+    distances = [[[] for j in range(num_attrs)] for i in range(len(categories))]
+    for i, (data, target) in enumerate(tqdm(dataloader)):
+        attr = target[1]
+        anns = target[0] 
+        file_path = target[3]
+        if len(attr) > 1:
+            for index in range(len(attr[1])):
+                bbox = attr[1][index]
+                value = attr[0][index]
+                person_center = np.array([bbox[0] + (bbox[1]/2.), bbox[2] + (bbox[3]/2.)])
+                person_area = (bbox[1]-bbox[0])*(bbox[3]-bbox[2])
+                seen_instances = []
+                for j, ann in enumerate(anns):
+                    ann_center = np.array([ann['bbox'][0] + (ann['bbox'][1]/2.), ann['bbox'][2] + (ann['bbox'][3]/2.)])
+                    ann_area = (ann['bbox'][1]-ann['bbox'][0])*(ann['bbox'][3]-ann['bbox'][2])
+                    distance = np.linalg.norm(person_center - ann_center)
+                    # Finds the person-object pair that has the shortest distance
+                    if categories.index(ann['label']) in seen_instances:
+                        prev = distances[categories.index(ann['label'])][value][-1]
+                        prev_calc_dist = prev[0] / np.sqrt(prev[1]*prev[2])
+                        calc_dist = distance / np.sqrt(person_area*ann_area)
+                        if calc_dist < prev_calc_dist:
+                            distances[categories.index(ann['label'])][value][-1] = (distance, person_area, ann_area, file_path, j, index)
+                    else:
+                        distances[categories.index(ann['label'])][value].append((distance, person_area, ann_area, file_path, j, index))
+                        seen_instances.append(categories.index(ann['label']))
+
+    pickle.dump(distances, open("results/{}/att_dis.pkl".format(args.folder), "wb"))
 
 def att_clu(dataloader, args):
     use_cuda = not args.ngpu and torch.cuda.is_available()
@@ -160,7 +211,7 @@ def att_clu(dataloader, args):
 
     # Extracts scene features from the entire image
     arch = 'resnet18'
-    model_file = '%s_places365.pth.tar' % arch
+    model_file = 'util_files/%s_places365.pth.tar' % arch
     model = models.__dict__[arch](num_classes=365).to(device)
     checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage)
     state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
@@ -179,7 +230,7 @@ def att_clu(dataloader, args):
     scene_filepaths = [[[] for j in range(num_attrs)] for i in range(len(categories))]
 
     # Extracts features of just the cropped object
-    model_file = 'cifar_resnet110.th'
+    model_file = 'util_files/cifar_resnet110.th'
     small_model = resnet110()
     checkpoint = torch.load(model_file, map_location=lambda storage, loc: storage)
     state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
@@ -212,19 +263,20 @@ def att_clu(dataloader, args):
                     continue
                 small_data = F.interpolate(instance.unsqueeze(0), size=32, mode='bilinear').to(device)
                 this_small_features = small_model.features(small_data)
-                if len(scene_features[index][attr[0]]) < 500 and index not in scene_added:
-                    scene_added.append(index)
-                    scene_features[index][attr[0]].extend(this_features.data.cpu().numpy())
-                    scene_filepaths[index][attr[0]].append((target[3], pred))
-                if len(instance_features[index][attr[0]]) < 500:
-                    instance_features[index][attr[0]].extend(this_small_features.data.cpu().numpy())
+                for att in attr[0]:
+                    if len(scene_features[index][att]) < 500 and index not in scene_added:
+                        scene_added.append(index)
+                        scene_features[index][att].extend(this_features.data.cpu().numpy())
+                        scene_filepaths[index][att].append((target[3], pred))
+                    if len(instance_features[index][att]) < 500:
+                        instance_features[index][att].extend(this_small_features.data.cpu().numpy())
     stats = {}
     stats['instance'] = instance_features
     stats['scene'] = scene_features
     stats['scene_filepaths'] = scene_filepaths
     pickle.dump(stats, open("results/{}/att_clu.pkl".format(args.folder), "wb"))
 
-    def att_scn(dataloader, args):
+def att_scn(dataloader, args):
     num_attrs = len(dataloader.dataset.attribute_names)
     info = pickle.load(open('util_files/places_scene_info.pkl', 'rb'))
     idx_to_scene = info['idx_to_scene']
@@ -232,14 +284,14 @@ def att_clu(dataloader, args):
     sceneidx_to_scenegroupidx = info['sceneidx_to_scenegroupidx']
 
     scenes_per = [[0 for a in range(num_attrs)] for i in range(len(idx_to_scenegroup))]
-    print(len(scenes_per[0]))
     for i, (data, target) in enumerate(tqdm(dataloader)):
         attribute = target[1]
         anns = target[0]
         top_scene = target[4]
-        if len(attribute) > 1:
+        if len(attribute) > 1 and top_scene is not None:
             for scene in top_scene:
-                scenes_per[scene][attribute[0]] += 1
+                for att in attribute[0]:
+                    scenes_per[scene][att] += 1
 
     info_stats = {}
     info_stats['scenes_per'] = scenes_per
