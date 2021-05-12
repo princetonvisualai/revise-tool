@@ -241,7 +241,7 @@ class TemplateDataset(data.Dataset):
         # Labels, that are entries from self.categories, that correspond to people (optional)
         self.people_labels = []
 
-        # Number of images from dataset that are female at index 0 and male at index 1 (optional, doesn't need to exist)
+        # Number of images from dataset that contain images with each attribute (optional, doesn't need to exist)
         self.num_attribute_images = [0, 0]
         
     def __getitem__(self, index):
@@ -259,10 +259,12 @@ class TemplateDataset(data.Dataset):
         image = self.transform(image)
 
         #Note: person_bbox should be a list (e.g. [bbox1, bbox2]) where for each bbox digits should be: x, y, width, height. all numbers are scaled to be between 0 and 1
-        person_bbox = [None] # optional
-        #Note: gender should be in a list because attribute_based assumes each image can have more than 1 value, e.g. [attribute1, attribute2]
-        gender = [None] # optional, we have used 0 for male and 1 for female when these labels exist (yes, this order is reversed from self.num_gender_images above)
-        gender_info = [gender, person_bbox] # optional Note bbox should also be a list for the same reason mentioned above for gender, e.g. [attribute1, attribute2], [bbox1, bbox2])
+        bbox1 = [.1, .1, .3, .4]
+        bbox2 = [.5, .5, .3, .4]
+        person_bbox = [bbox1, bbox2] # optional
+        #Note: attributes should be in a list because attribute_based assumes each image can have more than 1 value, e.g. [attribute1, attribute2]
+        attributes = [0, 1] # optional 
+        attribute_info = [attributes, person_bbox] # optional Note bbox should also be a list for the same reason mentioned above for gender, e.g. [attribute1, attribute2], [bbox1, bbox2])
 
         country = None # optional
 
@@ -275,8 +277,7 @@ class TemplateDataset(data.Dataset):
         # whose values are type doubles. 
         lat_lng = None 
 
-        #Note: Gender info should not be in an array since gender_info is already array
-        anns = [image_anns, [gender_info], [country, lat_lng], file_path, scene_group]
+        anns = [image_anns, attribute_info, [country, lat_lng], file_path, scene_group]
 
         return image, anns
 
@@ -477,9 +478,9 @@ class CoCoDataset(data.Dataset):
         _, tail = os.path.split(file_path)
         file_path = self.folder_path + tail
 
-        image = Image.open(file_path).convert("RGB")
+        image = Image.open(file_path).convert("RGB") 
+        image_size = [image.size[1], image.size[0]]
         image = self.transform(image)
-        image_size = list(image.size())[1:]
 
         annIds = self.coco.getAnnIds(imgIds=image_id);
         coco_anns = self.coco.loadAnns(annIds) # coco is [x, y, width, height]
@@ -502,15 +503,15 @@ class CoCoDataset(data.Dataset):
         if biggest_bbox != 0 and image_id in self.attribute_data.keys():
             anns = [formatted_anns, [[self.attribute_data[image_id]], [biggest_bbox]], [0], file_path, scene]
         else:
-            anns = [formatted_anns, [0], [0], file_path, scene]
+            anns = [formatted_anns, [], [0], file_path, scene]
         return image, anns        
 
     def from_path(self, file_path):
         image_id = int(os.path.basename(file_path)[-16:-4])
 
         image = Image.open(file_path).convert("RGB")
+        image_size = [image.size[1], image.size[0]]
         image = self.transform(image)
-        image_size = list(image.size())[1:]
 
         annIds = self.coco.getAnnIds(imgIds=image_id);
         coco_anns = self.coco.loadAnns(annIds) # coco is [x, y, width, height]
@@ -533,7 +534,7 @@ class CoCoDataset(data.Dataset):
         if biggest_bbox != 0 and image_id in self.attribute_data.keys():
             anns = [formatted_anns, [[self.attribute_data[image_id]], [biggest_bbox]], [0], file_path, scene]
         else:
-            anns = [formatted_anns, [0], [0], file_path, scene]
+            anns = [formatted_anns, [], [0], file_path, scene]
 
         return image, anns
     
