@@ -9,6 +9,7 @@ In the *sample_summary_pdfs* folder there are examples of the kinds of auto-gene
 * [Steps to perform analysis](https://github.com/princetonvisualai/revise-tool#steps-to-perform-analysis)
 * [Measurements](https://github.com/princetonvisualai/revise-tool#measurements)
 * [Potential Environment Issues](https://github.com/princetonvisualai/revise-tool#potential-environment-issues)
+* [Gloassary](https://github.com/princetonvisualai/revise-tool#glossary)
 * [Paper and Citation](https://github.com/princetonvisualai/revise-tool#paper-and-citation)
 
 ## Setup:
