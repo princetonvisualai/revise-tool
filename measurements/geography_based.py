@@ -478,4 +478,52 @@ def geo_lng(dataloader, args):
 
     pickle.dump(info, open("results/{}/geo_lng.pkl".format(args.folder), "wb"))
 
+def geo_att(dataloader, args):
+    geo_att = {}
 
+    # code adapted from geo_ctr_gps
+    geo_boundaries = dataloader.dataset.geo_boundaries
+    geo_boundaries_key_name = dataloader.dataset.geo_boundaries_key_name
+
+    # import subregion boundaries shapefile
+    subregion_boundaries = dataloader.dataset.subregion_boundaries
+    subregion_boundaries_key_name = dataloader.dataset.subregion_boundaries_key_name
+
+    # fn that returns name of political region that a point falls into (eg. Manhattan)
+    def bin_point(lng, lat, is_subregion):
+        point = Point(lng, lat)
+        # check each polygon to see if it contains the point
+        if not is_subregion:
+            for feature in geo_boundaries['features']:
+                polygon = shape(feature['geometry'])
+                if polygon.contains(point):
+                    return feature['properties'][geo_boundaries_key_name]
+            return None
+        else:
+            # subregion binning
+            for feature in subregion_boundaries['features']:
+                polygon = shape(feature['geometry'])
+                if polygon.contains(point):
+                    return feature['properties'][subregion_boundaries_key_name]
+            return None
+
+    for i, (data, target) in enumerate(tqdm(dataloader)):
+        attribute = target[1]
+        lat_lng = target[5]
+        if len(attribute) > 1 and lat_lng is not None:
+            region_name = (bin_point(float(lat_lng['lng']), float(lat_lng['lat']), False))   
+            if subregion_boundaries is not None:
+                subregion_names = bin_point(float(lat_lng['lng']), float(lat_lng['lat']), True)
+            # add the subregion and region binnings
+            for att in attribute[0]:
+                if att not in geo_att:
+                    if subregion_boundaries is not None: 
+                        geo_att[att] = {'lat_lng': [], 'region': [], 'subregion': []}
+                    else:
+                        geo_att[att] = {'lat_lng': [], 'region': []}
+                geo_att[att]['lat_lng'].append(lat_lng)
+                geo_att[att]['region'].append(region_name)
+                if subregion_boundaries is not None:
+                    geo_att[att]['subregion'].append(subregion_names)
+    pickle.dump(geo_att, open("results/{}/geo_att.pkl".format(args.folder), "wb"))
+    
