@@ -25,9 +25,17 @@ bash download.sh
 - Note: we use [Amazon Rekognition](https://aws.amazon.com/rekognition/)'s proprietery facial detection tool in our analyses, which does incur a charge, and this will need to be set up for each user (instructions on Amazon's site). There are many free facial detection tools available as well, and you can change what is used in attribute_based.py . One such free facial detection tool through cv2 is already implemented, and simply involves changing the FACE_DETECT variable in attribute_based.py from 0 to 1 to use this instead.
 
 ## Steps to perform analysis:
-(0.5 optional) To experiment with the tool on the COCO dataset for Object-Based and Attribute-Based metrics (using gender annotations) without having to run all the measurements on a dataset first, download the pickle files from [here](https://drive.google.com/drive/folders/1cGUr2ruV7IRl4h8EGtCjRCsg8wtPVu5P?usp=sharing), and place them in a folder in the tool directory called results/coco_example. Also download the [2014 COCO dataset](https://cocodataset.org/#download) as well as [gender annotations](https://github.com/uclanlp/reducingbias/tree/master/data/COCO), and place them in customizable filepaths specified in the code [here](https://github.com/princetonvisualai/revise-tool/blob/master/datasets.py#L383). Those lacking the necessary storage space for the COCO dataset on their local machine can still see much of the functionality by simply heading to section 1.1 (Initial Setup) on each analysis notebook and changing the dataset class from "CoCoDataset" to "CoCoDatasetNoImages". Then, skip to Step 3.
+Note that all scripts are expected to be run from the home directory.
 
-(1) Make a dataloader structured like the 'Template Dataset' in datasets.py (add to main_measure.py as well), and fill in with the dataset you would like to analyze
+(0.5 optional) To experiment with the tool on the COCO dataset for Object-Based and Attribute-Based metrics (using gender annotations) without having to run all the measurements on a dataset first, follow these steps and then skip to Step 3:
+- Download the pickle files from [here](https://drive.google.com/drive/folders/1cGUr2ruV7IRl4h8EGtCjRCsg8wtPVu5P?usp=sharing), and place them in a folder in the tool directory called results/coco_example
+- Download the [2014 COCO dataset](https://cocodataset.org/#download) as well as [gender annotations](https://github.com/uclanlp/reducingbias/tree/master/data/COCO), and place them in customizable filepaths specified in the code [here](https://github.com/princetonvisualai/revise-tool/blob/master/datasets.py#L383). 
+	- Those lacking the necessary storage space for the images of the COCO dataset can still try much of the functionality by simply heading to section 1.1 (Initial Setup) on each analysis notebook and changing the dataset class from "CoCoDataset" to "CoCoDatasetNoImages"
+
+(1) Make a dataloader structured like the 'Template Dataset' in datasets.py (add to main_measure.py as well), and fill in with the dataset you would like to analyze. Test that you have properly implemented a dataset by running:
+```
+python3 tester_script.py NewDataset
+```
 
 (2) Run main_measure to make a pass through the data and collect the metrics for analysis, for example to get measurements (details in section below) att_siz, att_cnt, att_dis, att_clu, obj_scn, att_scn on COCO and have the file be saved in coco_example:
 ```
@@ -43,9 +51,8 @@ and for the Geography notebook (geo_tag and geo_lng) run
 ```
 python3 measurements/prerun_analyzegeo.py --dataset 'yfcc' --folder 'yfcc_example'
 ```
-Note that both commands must be run from the home directory. 
 
-(3) Open up the jupyter notebook corresponding to the axis of bias you would like to explore: object, attribute, or geography. Further instructions are at the top of the notebook about how to run them.
+(3) Still in the home directory, open the jupyter notebook from within the analysis_notebooks folder corresponding to the axis of bias you would like to explore: object, attribute, or geography. Further instructions are at the top of the notebook about how to run them.
 
 ## Measurements
 Measurements that can be run, along with the file and name of the function they are associated with:
@@ -77,15 +84,15 @@ att_scn: Counts the types of scenes each attribute occurs with.
 
 ### Geography-Based
 
+Note: Geography-Based analyses require a mapping from images to location. The 2 formats of geography annotations supported are (ie. String formatted locations like 'Manhattan'), and GPS labels (latitude and longitude coordinate pairs). Namely, the user should specify in their dataset class the `geography_info_type` to be one of the following:
+- 'GPS_LABEL': datasets with mappings from image to GPS coordinates
+- 'STRING_FORMATTED_LABEL', datasets with mappings from image to string-formatted labels
+
 geo_ctr: Counts the number of images from each region
 
 geo_tag: Counts the number of tags from each region, as well as extracts AlexNet features pretrained on ImageNet for each tag, grouping by subregion
 
 geo_lng: Counts the languages that make up the image tags, and whether or not they are local to the country the image is from. Also extracts image-level features to compare if locals and tourist portray a country differently
-
-Note: Geography-Based analyses require a mapping from images to location. The 2 formats of geography annotations supported are (ie. String formatted locations like 'Manhattan'), and GPS labels (latitude and longitude coordinate pairs). Namely, the user should specify in their dataset class the `geography_info_type` to be one of the following:
-- 'GPS_LABEL': datasets with mappings from image to GPS coordinates
-- 'STRING_FORMATTED_LABEL', datasets with mappings from image to string-formatted labels
 
 ## Potential Environment Issues
 - If FileNotFoundError: [Errno 2] No such file or directory: appears from importing basemap at epsgf = open(os.path.join(pyproj_datadir,'epsg')), change the PROJ_LIB variable as suggested [here](https://stackoverflow.com/questions/58683341/basemap-wont-import-because-epsg-file-or-directory-cant-be-found-macos-ana).
@@ -102,6 +109,9 @@ conda install conda=4.6.14
 ```
 - environments/environment.yml for non-Mac machines 
 - Try deleting line 9 of environments/enivronment.yml of ```_libgcc_mutex=0.1=main``` if there are compatability errors
+
+## Glossary
+- Supercategory: a higher-order category for image labels. e.g., "couch" and "table" both map to the supercategory of "furniture"
 
 ## Paper and Citation
 [REVISE: A Tool for Measuring and Mitigating Bias in Visual Datasets](https://arxiv.org/abs/2004.07999)
