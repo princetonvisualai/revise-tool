@@ -97,10 +97,15 @@ def geo_ctr_gps(dataloader, args):
         point = Point(lng, lat)
         # check each polygon to see if it contains the point
         if not is_subregion:
-            for feature in geo_boundaries['features']:
-                polygon = shape(feature['geometry'])
+            if 'features' in geo_boundaries:
+                for feature in geo_boundaries['features']:
+                    polygon = shape(feature['geometry'])
+                    if polygon.contains(point):
+                        return feature['properties'][geo_boundaries_key_name]
+            elif 'geometry' in geo_boundaries:
+                polygon = shape(geo_boundaries['geometry'])
                 if polygon.contains(point):
-                    return feature['properties'][geo_boundaries_key_name]
+                    return geo_boundaries['properties'][geo_boundaries_key_name]
             return None
         else:
             # subregion binning
@@ -142,18 +147,19 @@ def geo_ctr_gps(dataloader, args):
             # add filepath id to region_to_id_map
             region_to_id_map['out_of_boundary'] = id_list
 
-        if subregion_boundaries is not None:
-            subregion_name = bin_point(lat_lng['lng'], lat_lng['lat'], True)
-            if subregion_name is not None:
-                id_to_subregion_map[target[3]] = subregion_name
-                id_list = subregion_to_id_map.get(subregion_name, [])
-                id_list.append(target[3])
-                subregion_to_id_map[subregion_name] = id_list
-            else:
-                id_list = subregion_to_id_map.get('out_of_boundary', [])
-                id_list.append(target[3])
-                subregion_to_id_map['out_of_boundary'] = id_list
-                id_to_subregion_map[target[3]] = "out_of_boundary"
+        # todo: uncomment subregion stuff
+        # if subregion_boundaries is not None:
+        #     subregion_name = bin_point(lat_lng['lng'], lat_lng['lat'], True)
+        #     if subregion_name is not None:
+        #         id_to_subregion_map[target[3]] = subregion_name
+        #         id_list = subregion_to_id_map.get(subregion_name, [])
+        #         id_list.append(target[3])
+        #         subregion_to_id_map[subregion_name] = id_list
+        #     else:
+        #         id_list = subregion_to_id_map.get('out_of_boundary', [])
+        #         id_list.append(target[3])
+        #         subregion_to_id_map['out_of_boundary'] = id_list
+        #         id_to_subregion_map[target[3]] = "out_of_boundary"
 
     # combine all the maps into one big one
     counts_gps = {}
@@ -166,7 +172,8 @@ def geo_ctr_gps(dataloader, args):
         counts_gps['id_to_subregion'] = id_to_subregion_map
     else:
         print("Not enough subregions (< 3) for subregion analysis")
-    pickle.dump(counts_gps, open("results/{}/geo_ctr.pkl".format(args.folder), "wb"))
+    # todo: change back to geo_ctr for nyc stuff
+    pickle.dump(counts_gps, open("results/{}/geo_ctr_california.pkl".format(args.folder), "wb"))
 
 def geo_tag(dataloader, args):
     # redirect to geo_tag_gps if dataset is of gps form:
@@ -235,7 +242,10 @@ def geo_tag_gps(dataloader, args):
         print('running geo_ctr_gps() first to get necessary info...')
         geo_ctr_gps(dataloader, args)
     
-    counts_gps = pickle.load(open("results/{}/geo_ctr.pkl".format(args.folder), "rb"))
+    # todo: replace california with normal
+    # counts_gps = pickle.load(open("results/{}/geo_ctr.pkl".format(args.folder), "rb"))
+    print("opening california geo_ctr")
+    counts_gps = pickle.load(open("results/{}/geo_ctr_california.pkl".format(args.folder), "rb"))
     id_to_region = counts_gps['id_to_region']
     id_to_subregion = counts_gps.get("id_to_subregion", None)
 
@@ -267,6 +277,14 @@ def geo_tag_gps(dataloader, args):
     # when popup is clicked in interactive folium map
     fileid_to_label_string = {}
 
+    # todo remove maps each region to number of total labels in region todo: remove
+    region_to_num_label = {}
+
+    # todo: decide to keep attr work
+    region_weather = {}
+    region_scene = {}
+    region_timeofday = {}
+
     for i, (data, target) in enumerate(tqdm(dataloader)):
         if data is None:
             continue
@@ -275,35 +293,62 @@ def geo_tag_gps(dataloader, args):
             continue
         anns = target[0]
         filepath = target[3]
-        this_categories = list(set([categories.index(ann['label']) for ann in anns]))
+        # todo: uncomment below line back
+        # this_categories = list(set([categories.index(ann['label']) for ann in anns]))
 
-        label_arr = list(set([ann['label'] for ann in anns]))
-        label_string = ", ".join(label_arr)
-        fileid_to_label_string[filepath] = label_string
+        #####################################################
+        # todo: remove
+        # region_to_num_label[region_name] = region_to_num_label.get(region_name, 0) + len(anns)
 
-        if region_name not in region_tags.keys():
-            region_tags[region_name] = np.zeros(len(categories))
+        # if region_name not in region_to_num_label.keys():
+        #     region_to_num_label[region_name] = {}
+        # for ann in anns:
+        #     region_to_num_label[region_name][ann['label']] = region_to_num_label[region_name].get(ann['label'], 0) + 1
+        #####################################################
+        # todo: decide if to keep attr work
+        if region_name not in region_weather:
+            region_weather[region_name] = {}
+            region_scene[region_name] = {}
+            region_timeofday[region_name] = {}
+
+        attr_dict = target[2][2] # keys: weather, scene, timeofday
+        region_weather[region_name][attr_dict['weather']] = region_weather[region_name].get(attr_dict['weather'], 0) + 1
+
+        region_scene[region_name][attr_dict['scene']] = region_scene[region_name].get(attr_dict['scene'], 0) + 1
+
+        region_timeofday[region_name][attr_dict['timeofday']] = region_timeofday[region_name].get(attr_dict['timeofday'], 0) + 1
         
-        subregion_name = None
-        if id_to_subregion is not None:
-            subregion_name = id_to_subregion[target[3]]
-            if subregion_name not in subregion_tags.keys():
-                subregion_tags[subregion_name] = np.zeros(len(categories))
+        
+        #####################################################
+
+        # todo: uncomment below
+
+        # label_arr = list(set([ann['label'] for ann in anns]))
+        # label_string = ", ".join(label_arr)
+        # fileid_to_label_string[filepath] = label_string
+
+        # if region_name not in region_tags.keys():
+        #     region_tags[region_name] = np.zeros(len(categories))
+        
+        # subregion_name = None
+        # if id_to_subregion is not None:
+        #     subregion_name = id_to_subregion[target[3]]
+        #     if subregion_name not in subregion_tags.keys():
+        #         subregion_tags[subregion_name] = np.zeros(len(categories))
 
         this_features = None
-        # todo: uncomment below
         # for cat in this_categories:
         #     if len(tag_to_region_features[cat][region_name]) < 500:
         #         data = normalize(data).to(device)
         #         big_data = F.interpolate(data.unsqueeze(0), size=224, mode='bilinear').to(device)
         #         this_features = model.forward(big_data)
         #         break
-        for cat in this_categories:
-            region_tags[region_name][cat] += 1
-            if id_to_subregion is not None:
-                subregion_tags[subregion_name][cat] += 1
-            if this_features is not None and len(tag_to_region_features[cat][region_name]) < 500:
-                tag_to_region_features[cat][region_name].append((this_features.data.cpu().numpy(), filepath))
+        # for cat in this_categories:
+        #     region_tags[region_name][cat] += 1
+        #     if id_to_subregion is not None:
+        #         subregion_tags[subregion_name][cat] += 1
+        #     if this_features is not None and len(tag_to_region_features[cat][region_name]) < 500:
+        #         tag_to_region_features[cat][region_name].append((this_features.data.cpu().numpy(), filepath))
         
     info_stats = {}
     info_stats['region_tags'] = region_tags
@@ -311,8 +356,19 @@ def geo_tag_gps(dataloader, args):
         print("Adding subregion tags...")
         info_stats['subregion_tags'] = subregion_tags
     info_stats['tag_to_region_features'] = tag_to_region_features
+    # todo: remove
+    info_stats['region_to_num_labels'] = region_to_num_label
+    # todo: check if we want to keep attrs
+    comb_attr = {
+            'region_weather' : region_weather,
+            'region_scene' : region_scene,
+            'region_timeofday' : region_timeofday
+    }
+    info_stats['comb_attr'] = comb_attr
+    # for popup UI in geo_ctr map display
     info_stats['fileid_to_label_string'] = fileid_to_label_string
-    pickle.dump(info_stats, open("results/{}/geo_tag.pkl".format(args.folder), "wb"))
+    # todo: change
+    pickle.dump(info_stats, open("results/{}/geo_tag_california.pkl".format(args.folder), "wb"))
 
 # private function called from geo_tag() if dataset is of STRING_FORMATTED_LABEL + REGION_LABEL form
 def geo_tag_region(dataloader, args):
