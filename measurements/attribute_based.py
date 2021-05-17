@@ -74,59 +74,60 @@ def att_siz(dataloader, args):
         if len(attribute)> 1:
             shape = list(data.size())[1:]
             for index in range(len(attribute[1])):
-                bbox = attribute[1][index]
-                att = attribute[0][index]
-                bbox_adjust = np.array([bbox[0]*shape[1], bbox[1]*shape[1], bbox[2]*shape[0], bbox[3]*shape[0]])
-                pixel_size = (bbox_adjust[1]-bbox_adjust[0])*(bbox_adjust[3]-bbox_adjust[2])
-                size = (bbox[1]-bbox[0])*(bbox[3]-bbox[2])
-                person_center = np.array([bbox[0] + (bbox[1]/2.), bbox[2] + (bbox[3]/2.)])
-                distance = np.linalg.norm(person_center - img_center)
-                pic = data.data.cpu().numpy()
+                if type(attribute[1][index])== list:
+                    bbox = attribute[1][index]
+                    att = attribute[0][index]
+                    bbox_adjust = np.array([bbox[0]*shape[1], bbox[1]*shape[1], bbox[2]*shape[0], bbox[3]*shape[0]])
+                    pixel_size = (bbox_adjust[1]-bbox_adjust[0])*(bbox_adjust[3]-bbox_adjust[2])
+                    size = (bbox[1]-bbox[0])*(bbox[3]-bbox[2])
+                    person_center = np.array([bbox[0] + (bbox[1]/2.), bbox[2] + (bbox[3]/2.)])
+                    distance = np.linalg.norm(person_center - img_center)
+                    pic = data.data.cpu().numpy()
 
-                if FACE_DETECT == 0:
-                    detect_info = detect_face(target[3], detect_info, client)
-                    faceDetails = detect_info[target[3]]['FaceDetails']
-                    if len(detect_info) % 20 == 0:
-                        pickle.dump(detect_info, open('{}_rekognitioninfo.pkl'.format(args.folder), 'wb'))
+                    if FACE_DETECT == 0:
+                        detect_info = detect_face(target[3], detect_info, client)
+                        faceDetails = detect_info[target[3]]['FaceDetails']
+                        if len(detect_info) % 20 == 0:
+                            pickle.dump(detect_info, open('{}_rekognitioninfo.pkl'.format(args.folder), 'wb'))
 
-                    yes_face = False
-                    for face in faceDetails:
-                        if face['Confidence'] > .9:
+                        yes_face = False
+                        for face in faceDetails:
+                            if face['Confidence'] > .9:
+                                yes_face = True
+                    elif FACE_DETECT == 1:
+                        image = cv2.imread(target[3])
+                        gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+                        try:
+                            faces = faceCascade.detectMultiScale(
+                            gray,
+                            scaleFactor=1.1,
+                            minNeighbors=5,
+                            #minSize=(30, 30),
+                            flags = cv2.CASCADE_SCALE_IMAGE
+                            )
+                        except cv2.error as e:
+                            faceCascade = cv2.CascadeClassifier(cascPath)
+                            faces = faceCascade.detectMultiScale(
+                            gray,
+                            scaleFactor=1.1,
+                            minNeighbors=5,
+                            #minSize=(30, 30),
+                            flags = cv2.CASCADE_SCALE_IMAGE
+                            )
+                        yes_face = False
+                        if len(faces) > 0:
                             yes_face = True
-                elif FACE_DETECT == 1:
-                    image = cv2.imread(target[3])
-                    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-                    try:
-                        faces = faceCascade.detectMultiScale(
-                        gray,
-                        scaleFactor=1.1,
-                        minNeighbors=5,
-                        #minSize=(30, 30),
-                        flags = cv2.CASCADE_SCALE_IMAGE
-                        )
-                    except cv2.error as e:
-                        faceCascade = cv2.CascadeClassifier(cascPath)
-                        faces = faceCascade.detectMultiScale(
-                        gray,
-                        scaleFactor=1.1,
-                        minNeighbors=5,
-                        #minSize=(30, 30),
-                        flags = cv2.CASCADE_SCALE_IMAGE
-                        )
-                    yes_face = False
-                    if len(faces) > 0:
-                        yes_face = True
 
-                # If there's no face detected and the person is too small, attribute cannot be distinguished
-                if not yes_face or pixel_size < 1000.:
-                    scene_group = target[4]
-                    if not yes_face:
-                        no_faces[att].append(((size, pixel_size, scene_group), (file_path, index)))
-                    elif pixel_size < 1000.:        
-                        tiny_sizes[att].append(((size, scene_group), (file_path, index)))
-                    continue
-                sizes[att].append((size, (file_path, index)))
-                distances[att].append((distance, (file_path, index)))
+                    # If there's no face detected and the person is too small, attribute cannot be distinguished
+                    if not yes_face or pixel_size < 1000.:
+                        scene_group = target[4]
+                        if not yes_face:
+                            no_faces[att].append(((size, pixel_size, scene_group), (file_path, index)))
+                        elif pixel_size < 1000.:        
+                            tiny_sizes[att].append(((size, scene_group), (file_path, index)))
+                        continue
+                    sizes[att].append((size, (file_path, index)))
+                    distances[att].append((distance, (file_path, index)))
 
     if FACE_DETECT == 0:
         pickle.dump(detect_info, open('{}_rekognitioninfo.pkl'.format(args.folder), 'wb'))
@@ -183,25 +184,26 @@ def att_dis(dataloader, args):
         file_path = target[3]
         if len(attr) > 1:
             for index in range(len(attr[1])):
-                bbox = attr[1][index]
-                value = attr[0][index]
-                person_center = np.array([bbox[0] + (bbox[1]/2.), bbox[2] + (bbox[3]/2.)])
-                person_area = (bbox[1]-bbox[0])*(bbox[3]-bbox[2])
-                seen_instances = []
-                for j, ann in enumerate(anns):
-                    ann_center = np.array([ann['bbox'][0] + (ann['bbox'][1]/2.), ann['bbox'][2] + (ann['bbox'][3]/2.)])
-                    ann_area = (ann['bbox'][1]-ann['bbox'][0])*(ann['bbox'][3]-ann['bbox'][2])
-                    distance = np.linalg.norm(person_center - ann_center)
-                    # Finds the person-object pair that has the shortest distance
-                    if categories.index(ann['label']) in seen_instances:
-                        prev = distances[categories.index(ann['label'])][value][-1]
-                        prev_calc_dist = prev[0] / np.sqrt(prev[1]*prev[2])
-                        calc_dist = distance / np.sqrt(person_area*ann_area)
-                        if calc_dist < prev_calc_dist:
-                            distances[categories.index(ann['label'])][value][-1] = (distance, person_area, ann_area, file_path, j, index)
-                    else:
-                        distances[categories.index(ann['label'])][value].append((distance, person_area, ann_area, file_path, j, index))
-                        seen_instances.append(categories.index(ann['label']))
+                if type(attr[1][index])== list:
+                    bbox = attr[1][index]
+                    value = attr[0][index]
+                    person_center = np.array([bbox[0] + (bbox[1]/2.), bbox[2] + (bbox[3]/2.)])
+                    person_area = (bbox[1]-bbox[0])*(bbox[3]-bbox[2])
+                    seen_instances = []
+                    for j, ann in enumerate(anns):
+                        ann_center = np.array([ann['bbox'][0] + (ann['bbox'][1]/2.), ann['bbox'][2] + (ann['bbox'][3]/2.)])
+                        ann_area = (ann['bbox'][1]-ann['bbox'][0])*(ann['bbox'][3]-ann['bbox'][2])
+                        distance = np.linalg.norm(person_center - ann_center)
+                        # Finds the person-object pair that has the shortest distance
+                        if categories.index(ann['label']) in seen_instances:
+                            prev = distances[categories.index(ann['label'])][value][-1]
+                            prev_calc_dist = prev[0] / np.sqrt(prev[1]*prev[2])
+                            calc_dist = distance / np.sqrt(person_area*ann_area)
+                            if calc_dist < prev_calc_dist:
+                                distances[categories.index(ann['label'])][value][-1] = (distance, person_area, ann_area, file_path, j, index)
+                        else:
+                            distances[categories.index(ann['label'])][value].append((distance, person_area, ann_area, file_path, j, index))
+                            seen_instances.append(categories.index(ann['label']))
 
     pickle.dump(distances, open("results/{}/att_dis.pkl".format(args.folder), "wb"))
 
