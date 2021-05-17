@@ -500,7 +500,7 @@ class CoCoDataset(data.Dataset):
                     biggest_bbox = bbox
 
         scene = self.scene_mapping.get(original_file_path, None)
-        if image_id in self.attribute_data.keys():    
+        if image_id in self.attribute_data.keys():
             anns = [formatted_anns, [[self.attribute_data[image_id]], [biggest_bbox]], [0], file_path, scene]
         else:
             anns = [formatted_anns, [], [0], file_path, scene]
@@ -531,7 +531,7 @@ class CoCoDataset(data.Dataset):
                     biggest_bbox = bbox
 
         scene = self.scene_mapping.get(file_path, None)
-        if image_id in self.attribute_data.keys():  
+        if image_id in self.attribute_data.keys():
             anns = [formatted_anns, [[self.attribute_data[image_id]], [biggest_bbox]], [0], file_path, scene]
         else:
             anns = [formatted_anns, [], [0], file_path, scene]
