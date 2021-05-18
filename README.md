@@ -10,6 +10,7 @@ In the *sample_summary_pdfs* folder there are examples of the kinds of auto-gene
 * [Measurements](https://github.com/princetonvisualai/revise-tool#measurements)
 * [Potential Environment Issues](https://github.com/princetonvisualai/revise-tool#potential-environment-issues)
 * [Gloassary](https://github.com/princetonvisualai/revise-tool#glossary)
+* [Team](https://github.com/princetonvisualai/revise-tool#team)
 * [Paper and Citation](https://github.com/princetonvisualai/revise-tool#paper-and-citation)
 
 ## Setup:
@@ -113,6 +114,16 @@ conda install conda=4.6.14
 
 ## Glossary
 - Supercategory: a higher-order category for image labels. e.g., "couch" and "table" both map to the supercategory of "furniture"
+
+## Team
+- Angelina Wang
+- Alexander Liu
+- Ryan Zhang
+- Anat Kleiman
+- Leslie Kim
+- Dora Zhao
+- Arvind Narayanan
+- Olga Russakovsky
 
 ## Paper and Citation
 [REVISE: A Tool for Measuring and Mitigating Bias in Visual Datasets](https://arxiv.org/abs/2004.07999)
