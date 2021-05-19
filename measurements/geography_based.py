@@ -479,7 +479,7 @@ def geo_lng(dataloader, args):
     pickle.dump(info, open("results/{}/geo_lng.pkl".format(args.folder), "wb"))
 
 def geo_att(dataloader, args):
-    geo_att = {}
+    att_dict = {}
 
     # code adapted from geo_ctr_gps
     geo_boundaries = dataloader.dataset.geo_boundaries
@@ -516,14 +516,14 @@ def geo_att(dataloader, args):
                 subregion_names = bin_point(float(lat_lng['lng']), float(lat_lng['lat']), True)
             # add the subregion and region binnings
             for att in attribute[0]:
-                if att not in geo_att:
+                if att not in att_dict:
                     if subregion_boundaries is not None: 
-                        geo_att[att] = {'lat_lng': [], 'region': [], 'subregion': []}
+                        att_dict[att] = {'lat_lng': [], 'region': [], 'subregion': []}
                     else:
-                        geo_att[att] = {'lat_lng': [], 'region': []}
-                geo_att[att]['lat_lng'].append(lat_lng)
-                geo_att[att]['region'].append(region_name)
+                        att_dict[att] = {'lat_lng': [], 'region': []}
+                att_dict[att]['lat_lng'].append(lat_lng)
+                att_dict[att]['region'].append(region_name)
                 if subregion_boundaries is not None:
-                    geo_att[att]['subregion'].append(subregion_names)
-    pickle.dump(geo_att, open("results/{}/geo_att.pkl".format(args.folder), "wb"))
+                    att_dict[att]['subregion'].append(subregion_names)
+    pickle.dump(att_dict, open("results/{}/geo_att.pkl".format(args.folder), "wb"))
     
