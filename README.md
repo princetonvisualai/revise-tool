@@ -1,8 +1,7 @@
 # REVISE: REvealing VIsual biaSEs
 A tool that automatically detects possible forms of bias in a visual dataset along the axes of object-based, attribute-based, and geography-based patterns, and from which next steps for mitigation are suggested. 
 
-Demo Video:
-https://user-images.githubusercontent.com/14211924/119756435-8c569b00-be71-11eb-8906-f4d59748f74c.mp4
+[Demo Video](https://user-images.githubusercontent.com/14211924/119756653-d2136380-be71-11eb-97f4-c560c94b106e.mp4)
 
 In the *sample_summary_pdfs* folder there are examples of the kinds of auto-generated summaries our tool outputs along each axis for a dataset. These samples are annotated in orange with some notes on how to interpret them.
 
