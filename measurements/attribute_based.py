@@ -74,7 +74,7 @@ def att_siz(dataloader, args):
         if len(attribute)> 1:
             shape = list(data.size())[1:]
             for index in range(len(attribute[1])):
-                if type(attribute[1][index])== list:
+                if hasattr(attribute[1][index], "__len__") and len(attribute[1][index])==4:
                     bbox = attribute[1][index]
                     att = attribute[0][index]
                     bbox_adjust = np.array([bbox[0]*shape[1], bbox[1]*shape[1], bbox[2]*shape[0], bbox[3]*shape[0]])
@@ -184,7 +184,7 @@ def att_dis(dataloader, args):
         file_path = target[3]
         if len(attr) > 1:
             for index in range(len(attr[1])):
-                if type(attr[1][index])== list:
+                if hasattr(attr[1][index], "__len__") and len(attr[1][index])==4:
                     bbox = attr[1][index]
                     value = attr[0][index]
                     person_center = np.array([bbox[0] + (bbox[1]/2.), bbox[2] + (bbox[3]/2.)])
