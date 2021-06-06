@@ -1213,12 +1213,6 @@ class BDD100KDataset(data.Dataset):
             'scene': scene_attr,
             'timeofday': timeofday_attr
         }
-        # weather_attr = self.labels[self.video_name_to_labels_idx[file_path]].get('attributes', None)
-        # if weather_attr is not None:
-        #     weather_attr = weather_attr.get('weather', 'none_weather')
-        # else:
-        #     weather_attr = 'non_weather'
-        ###########################################
 
         # for each image, get long lat gps information
         lat_lng = {}
