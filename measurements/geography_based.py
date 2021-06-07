@@ -358,7 +358,7 @@ def geo_tag_region(dataloader, args):
         print('running geo_ctr_region() first to get necessary info...')
         geo_ctr_region(dataloader, args)
     
-    counts = pickle.load(open("results/{}/geo_ctr.pkl".format(args.folder), "rb"))
+    counts_gps = pickle.load(open("results/{}/geo_ctr.pkl".format(args.folder), "rb"))
     id_to_region = counts_gps['id_to_region']
 
     # get name of regions
