@@ -12,7 +12,6 @@ In the *sample_summary_pdfs* folder there are examples of the kinds of auto-gene
 * [Measurements](https://github.com/princetonvisualai/revise-tool#measurements)
 * [Potential Environment Issues](https://github.com/princetonvisualai/revise-tool#potential-environment-issues)
 * [Gloassary](https://github.com/princetonvisualai/revise-tool#glossary)
-* [Team](https://github.com/princetonvisualai/revise-tool#team)
 * [Paper and Citation](https://github.com/princetonvisualai/revise-tool#paper-and-citation)
 
 ## Setup:
@@ -117,18 +116,10 @@ conda install conda=4.6.14
 ## Glossary
 - Supercategory: a higher-order category for image labels. e.g., "couch" and "table" both map to the supercategory of "furniture"
 
-## Team
-- Angelina Wang
-- Alexander Liu
-- Ryan Zhang
-- Anat Kleiman
-- Leslie Kim
-- Dora Zhao
-- Arvind Narayanan
-- Olga Russakovsky
-
 ## Paper and Citation
-[REVISE: A Tool for Measuring and Mitigating Bias in Visual Datasets](https://arxiv.org/abs/2004.07999)
+[REVISE: A Tool for Measuring and Mitigating Bias in Visual Datasets](https://arxiv.org/abs/2004.07999). If you find this useful, please cite one or both.
+
+[Original version](https://arxiv.org/abs/2004.07999v3), published at ECCV 2020
 
 ```
 @article{revisetool,
@@ -136,6 +127,17 @@ Author = {Angelina Wang and Arvind Narayanan and Olga Russakovsky},
 Title = {{REVISE}: A Tool for Measuring and Mitigating Bias in Visual Datasets},
 Year = {2020},
 Journal = {European Conference on Computer Vision (ECCV)},
+}
+```
+
+[Extended version](https://arxiv.org/abs/2004.07999)
+
+```
+@article{revisetool,
+Author = {Angelina Wang and Alexander Liu and Ryan Zhang and Anat Kleiman and Leslie Kim and Dora Zhao and Iroha Shirai and Arvind Narayanan and Olga Russakovsky},
+Title = {{REVISE}: A Tool for Measuring and Mitigating Bias in Visual Datasets},
+Year = {2021},
+Journal = {arXiv:2004.07999},
 }
 ```
 
