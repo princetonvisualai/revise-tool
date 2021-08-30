@@ -7,7 +7,6 @@ import os
 from measurements import object_based
 from measurements import attribute_based
 from measurements import geography_based
-from measurements import attribute_based
 
 def main():
 
