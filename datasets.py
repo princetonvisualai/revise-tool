@@ -1094,7 +1094,7 @@ class CityScapesDataset(data.Dataset):
             lat_lng['lat'] = json_data["gpsLatitude"]
             lat_lng['lng'] = json_data["gpsLongitude"]
 
-        anns = [image_anns, None, [country, lat_lng], file_path, None]    
+        anns = [image_anns, None, [country, lat_lng, None], file_path, None]    
         return image, anns
 
 
@@ -1117,15 +1117,11 @@ class BDD100KDataset(data.Dataset):
 
         # local boundary GeoJSON file from 
         # https://raw.githubusercontent.com/fedhere/PUI2015_EC/master/mam1612_EC/nyc-zip-code-tabulation-areas-polygons.GeoJSON
-        # todo: remove california and uncomment
         with open("/Users/home/Desktop/research/data/nyc_zips.json") as f:
             self.geo_boundaries = json.load(f)
-        # with open("/Users/home/Desktop/research/data/california.json") as f:
-        #     self.geo_boundaries = json.load(f)
-
+    
         # name of key representing region name within the GeoJSON file (these key names are different for different shapefiles so it is necessary to specify to access the region name, eg. 'Bayern)
         self.geo_boundaries_key_name = 'postalCode' 
-        # self.geo_boundaries_key_name = 'name' # todo: remove this
 
         # subregion boundaries GeoJSON file (for global subregion analysis) from 
         # https://drive.google.com/drive/folders/1ot9rCqeMW61z8uY-yXw30YI_DTUzeU9Z?usp=sharing
@@ -1145,9 +1141,6 @@ class BDD100KDataset(data.Dataset):
         # eg. '61c0de9c-996cae66.jpg' has video name '61c0de9c-996cae66'
 
         self.image_ids = np.load('/Users/home/Desktop/research/geo_testing/vid_names.npy')
-        # # california vid names. todo: change back to nyc after done with weather stuff
-        # print("loading in bay area images")
-        # self.image_ids = np.load('/Users/home/Desktop/research/geo_testing/vid_names_bayarea.npy')
         print("done with ids (1/2)")
 
         # train_label_path holds all the video names
@@ -1197,8 +1190,8 @@ class BDD100KDataset(data.Dataset):
                     image_anns.append({'label': label})
 
         ############################################
-        # todo: decide if need attr work
-        # weather testing
+        # additional attributes for geo analysis, including weather
+
         attr_extra = self.labels[self.video_name_to_labels_idx[file_path]].get('attributes', None)
         weather_attr = 'none_weather'
         scene_attr = 'none_scene'
