@@ -39,7 +39,8 @@ def main():
         'obj_ppl': object_based.obj_ppl,
         'obj_scn': object_based.obj_scn,
         'geo_lng': geography_based.geo_lng,
-        'att_scn': attribute_based.att_scn
+        'att_scn': attribute_based.att_scn,
+        'geo_att': geography_based.geo_att
     }
 
 
