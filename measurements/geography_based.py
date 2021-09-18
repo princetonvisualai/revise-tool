@@ -290,10 +290,10 @@ def geo_tag_gps(dataloader, args):
 
         # ----------------------------------------
         # additional attribute tag work, like getting weather info
-        attr_dict = None
-        if len(target[2]) > 2:
+        attr_dict = None 
+        if len(target[2]) > 2: # make sure additional attr information exists
             attr_dict = target[2][2] # keys: weather, scene, timeofday
-        if attr_dict:
+        if attr_dict: # only continue with attr work if it exists
             if region_name not in region_weather:
                 region_weather[region_name] = {}
                 region_scene[region_name] = {}
