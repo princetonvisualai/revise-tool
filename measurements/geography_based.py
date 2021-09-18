@@ -272,7 +272,7 @@ def geo_tag_gps(dataloader, args):
     # when popup is clicked in interactive folium map
     fileid_to_label_string = {}
 
-    # todo: decide to keep attr work
+    # attributes of region
     region_weather = {}
     region_scene = {}
     region_timeofday = {}
@@ -288,19 +288,23 @@ def geo_tag_gps(dataloader, args):
 
         this_categories = list(set([categories.index(ann['label']) for ann in anns]))
 
-        # todo: decide if to keep attr work
-        if region_name not in region_weather:
-            region_weather[region_name] = {}
-            region_scene[region_name] = {}
-            region_timeofday[region_name] = {}
+        # ----------------------------------------
+        # additional attribute tag work, like getting weather info
+        attr_dict = None
+        if len(target[2]) > 2:
+            attr_dict = target[2][2] # keys: weather, scene, timeofday
+        if attr_dict:
+            if region_name not in region_weather:
+                region_weather[region_name] = {}
+                region_scene[region_name] = {}
+                region_timeofday[region_name] = {}
 
-        attr_dict = target[2][2] # keys: weather, scene, timeofday
-        region_weather[region_name][attr_dict['weather']] = region_weather[region_name].get(attr_dict['weather'], 0) + 1
+            region_weather[region_name][attr_dict['weather']] = region_weather[region_name].get(attr_dict['weather'], 0) + 1
 
-        region_scene[region_name][attr_dict['scene']] = region_scene[region_name].get(attr_dict['scene'], 0) + 1
+            region_scene[region_name][attr_dict['scene']] = region_scene[region_name].get(attr_dict['scene'], 0) + 1
 
-        region_timeofday[region_name][attr_dict['timeofday']] = region_timeofday[region_name].get(attr_dict['timeofday'], 0) + 1
-        
+            region_timeofday[region_name][attr_dict['timeofday']] = region_timeofday[region_name].get(attr_dict['timeofday'], 0) + 1
+        # ----------------------------------------
         label_arr = list(set([ann['label'] for ann in anns]))
         label_string = ", ".join(label_arr)
         fileid_to_label_string[filepath] = label_string
@@ -334,14 +338,19 @@ def geo_tag_gps(dataloader, args):
         print("Adding subregion tags...")
         info_stats['subregion_tags'] = subregion_tags
     info_stats['tag_to_region_features'] = tag_to_region_features
-    # todo: check if we want to keep attrs
-    comb_attr = {
-            'region_weather' : region_weather,
-            'region_scene' : region_scene,
-            'region_timeofday' : region_timeofday
-    }
-    # todo: decide if to keep attr work
-    info_stats['comb_attr'] = comb_attr
+    #-------------------------------------
+    # only add attr information if it exists
+    comb_attr = {}
+    if region_weather:
+        comb_attr['region_weather']= region_weather
+    if region_scene:
+        comb_attr['region_scene'] = region_scene
+    if region_timeofday:
+        comb_attr['region_timeofday'] = region_timeofday
+        
+    if comb_attr:
+        info_stats['comb_attr'] = comb_attr
+    #-------------------------------------
     # for popup UI in geo_ctr map display
     info_stats['fileid_to_label_string'] = fileid_to_label_string
     pickle.dump(info_stats, open("results/{}/geo_tag.pkl".format(args.folder), "wb"))
