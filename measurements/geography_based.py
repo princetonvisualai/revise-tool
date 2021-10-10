@@ -147,18 +147,18 @@ def geo_ctr_gps(dataloader, args):
             # add filepath id to region_to_id_map
             region_to_id_map['out_of_boundary'] = id_list
 
-        # if subregion_boundaries is not None:
-        #     subregion_name = bin_point(lat_lng['lng'], lat_lng['lat'], True)
-        #     if subregion_name is not None:
-        #         id_to_subregion_map[target[3]] = subregion_name
-        #         id_list = subregion_to_id_map.get(subregion_name, [])
-        #         id_list.append(target[3])
-        #         subregion_to_id_map[subregion_name] = id_list
-        #     else:
-        #         id_list = subregion_to_id_map.get('out_of_boundary', [])
-        #         id_list.append(target[3])
-        #         subregion_to_id_map['out_of_boundary'] = id_list
-        #         id_to_subregion_map[target[3]] = "out_of_boundary"
+        if subregion_boundaries is not None:
+            subregion_name = bin_point(lat_lng['lng'], lat_lng['lat'], True)
+            if subregion_name is not None:
+                id_to_subregion_map[target[3]] = subregion_name
+                id_list = subregion_to_id_map.get(subregion_name, [])
+                id_list.append(target[3])
+                subregion_to_id_map[subregion_name] = id_list
+            else:
+                id_list = subregion_to_id_map.get('out_of_boundary', [])
+                id_list.append(target[3])
+                subregion_to_id_map['out_of_boundary'] = id_list
+                id_to_subregion_map[target[3]] = "out_of_boundary"
 
     # combine all the maps into one big one
     counts_gps = {}
