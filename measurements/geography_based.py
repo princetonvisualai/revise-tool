@@ -97,10 +97,15 @@ def geo_ctr_gps(dataloader, args):
         point = Point(lng, lat)
         # check each polygon to see if it contains the point
         if not is_subregion:
-            for feature in geo_boundaries['features']:
-                polygon = shape(feature['geometry'])
+            if 'features' in geo_boundaries:
+                for feature in geo_boundaries['features']:
+                    polygon = shape(feature['geometry'])
+                    if polygon.contains(point):
+                        return feature['properties'][geo_boundaries_key_name]
+            elif 'geometry' in geo_boundaries:
+                polygon = shape(geo_boundaries['geometry'])
                 if polygon.contains(point):
-                    return feature['properties'][geo_boundaries_key_name]
+                    return geo_boundaries['properties'][geo_boundaries_key_name]
             return None
         else:
             # subregion binning
@@ -263,6 +268,15 @@ def geo_tag_gps(dataloader, args):
     for cat in range(len(categories)):
         tag_to_region_features[cat] = copy.deepcopy(region_features)
 
+    # maps each filename id to a phrase of labels, ie "car, pedestrian, stop sign" for display
+    # when popup is clicked in interactive folium map
+    fileid_to_label_string = {}
+
+    # attributes of region
+    region_weather = {}
+    region_scene = {}
+    region_timeofday = {}
+
     for i, (data, target) in enumerate(tqdm(dataloader)):
         if data is None:
             continue
@@ -271,7 +285,29 @@ def geo_tag_gps(dataloader, args):
             continue
         anns = target[0]
         filepath = target[3]
+
         this_categories = list(set([categories.index(ann['label']) for ann in anns]))
+
+        # ----------------------------------------
+        # additional attribute tag work, like getting weather info
+        attr_dict = None 
+        if len(target[2]) > 2: # make sure additional attr information exists
+            attr_dict = target[2][2] # keys: weather, scene, timeofday
+        if attr_dict: # only continue with attr work if it exists
+            if region_name not in region_weather:
+                region_weather[region_name] = {}
+                region_scene[region_name] = {}
+                region_timeofday[region_name] = {}
+
+            region_weather[region_name][attr_dict['weather']] = region_weather[region_name].get(attr_dict['weather'], 0) + 1
+
+            region_scene[region_name][attr_dict['scene']] = region_scene[region_name].get(attr_dict['scene'], 0) + 1
+
+            region_timeofday[region_name][attr_dict['timeofday']] = region_timeofday[region_name].get(attr_dict['timeofday'], 0) + 1
+        # ----------------------------------------
+        label_arr = list(set([ann['label'] for ann in anns]))
+        label_string = ", ".join(label_arr)
+        fileid_to_label_string[filepath] = label_string
 
         if region_name not in region_tags.keys():
             region_tags[region_name] = np.zeros(len(categories))
@@ -290,18 +326,33 @@ def geo_tag_gps(dataloader, args):
                 this_features = model.forward(big_data)
                 break
         for cat in this_categories:
+            region_tags[region_name][cat] += 1
+            if id_to_subregion is not None:
+                subregion_tags[subregion_name][cat] += 1
             if this_features is not None and len(tag_to_region_features[cat][region_name]) < 500:
                 tag_to_region_features[cat][region_name].append((this_features.data.cpu().numpy(), filepath))
-        for ann in anns:
-            region_tags[region_name][categories.index(ann['label'])] += 1
-            if id_to_subregion is not None:
-                subregion_tags[subregion_name][categories.index(ann['label'])] += 1
+        
     info_stats = {}
     info_stats['region_tags'] = region_tags
     if id_to_subregion is not None:
         print("Adding subregion tags...")
         info_stats['subregion_tags'] = subregion_tags
     info_stats['tag_to_region_features'] = tag_to_region_features
+    #-------------------------------------
+    # only add attr information if it exists
+    comb_attr = {}
+    if region_weather:
+        comb_attr['region_weather']= region_weather
+    if region_scene:
+        comb_attr['region_scene'] = region_scene
+    if region_timeofday:
+        comb_attr['region_timeofday'] = region_timeofday
+        
+    if comb_attr:
+        info_stats['comb_attr'] = comb_attr
+    #-------------------------------------
+    # for popup UI in geo_ctr map display
+    info_stats['fileid_to_label_string'] = fileid_to_label_string
     pickle.dump(info_stats, open("results/{}/geo_tag.pkl".format(args.folder), "wb"))
 
 # private function called from geo_tag() if dataset is of STRING_FORMATTED_LABEL + REGION_LABEL form
@@ -316,7 +367,7 @@ def geo_tag_region(dataloader, args):
         print('running geo_ctr_region() first to get necessary info...')
         geo_ctr_region(dataloader, args)
     
-    counts = pickle.load(open("results/{}/geo_ctr.pkl".format(args.folder), "rb"))
+    counts_gps = pickle.load(open("results/{}/geo_ctr.pkl".format(args.folder), "rb"))
     id_to_region = counts_gps['id_to_region']
 
     # get name of regions

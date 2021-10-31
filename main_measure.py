@@ -65,7 +65,9 @@ def main():
         dataset = CelebADataset(transform_train)
     elif args.dataset == 'cityscapes':
         dataset = CityScapesDataset(transform_train)
-    
+    elif args.dataset == 'bdd100k':
+        dataset = BDD100KDataset(transform_train)
+        
     for meas in args.measurements:
         print("Starting measurement {}".format(meas))
         if args.dataset == 'yfcc':

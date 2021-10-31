@@ -975,36 +975,36 @@ class CityScapesDataset(data.Dataset):
 
     def __init__(self, transform): 
         self.transform = transform
-        self.img_folder = '/Users/home/Desktop/research/data/cityscapes/gtFine_trainvaltest/gtFine/train'
+        self.img_folder = 'Data/cityscapes/gtFine_trainvaltest/gtFine/train'
 
         self.geography_info_type = "GPS_LABEL" # GPS_LABEL or STRING_FORMATTED_LABEL
 
         self.geography_label_string_type = None # auto initialized to "COUNTRY_LABEL" or "REGION_LABEL" if geography_info_type is "STRING_FORMATTED_LABEL"
 
         # directory storing gps information
-        self.gps_folder = '/Users/home/Desktop/research/data/cityscapes/vehicle_trainvaltest/vehicle/train'
+        self.gps_folder = 'Data/cityscapes/vehicle_trainvaltest/vehicle/train'
 
-        # local boundary shapefile from 
+        # local boundary GeoJSON file from 
         # https://maps.princeton.edu/catalog/stanford-nh891yz3147
-        with open("/Users/home/Downloads/stanford-nh891yz3147-geojson.json") as f:
+        with open("Data/stanford-nh891yz3147-GeoJSON.json") as f:
             self.geo_boundaries = json.load(f)
 
-        # name of key representing region name within the shapefile (these key names are different for different shapefiles so it is necessary to specify to access the region name, eg. 'Bayern)
+        # name of key representing region name within the GeoJSON file (these key names are different for different shapefiles so it is necessary to specify to access the region name, eg. 'Bayern)
         self.geo_boundaries_key_name = 'name_1'    
 
-        # subregion boundaries shapefile (for global subregion analysis) from 
+        # subregion boundaries GeoJSON file (for global subregion analysis) from 
         # https://drive.google.com/drive/folders/1ot9rCqeMW61z8uY-yXw30YI_DTUzeU9Z?usp=sharing
-        with open("/Users/home/Downloads/subregion_global.json") as f:
+        with open("Data/subregion_global.json") as f:
             self.subregion_boundaries = json.load(f)
 
-        # name of key representing region name within the shapefile
+        # name of key representing region name within the GeoJSON file
         self.subregion_boundaries_key_name = 'subregion'
 
         # csv data for choropleth analysis 
         # CSV is comprised of 2 columns: 
         # colname1='Region' (string format of region name, eg. 'Bayern')
         # colname2='Data' (double format of data of interest, eg. 3.14)
-        self.choropleth_filepath = "/Users/home/Downloads/data.csv"
+        self.choropleth_filepath = "Data/data.csv"
 
         # store all of the city names in array [aachen, bochum, etc]
         self.city_names = os.listdir(self.gps_folder)
@@ -1094,5 +1094,127 @@ class CityScapesDataset(data.Dataset):
             lat_lng['lat'] = json_data["gpsLatitude"]
             lat_lng['lng'] = json_data["gpsLongitude"]
 
-        anns = [image_anns, None, [country, lat_lng], file_path, None]    
+        anns = [image_anns, None, [country, lat_lng, None], file_path, None]    
+        return image, anns
+
+
+'''
+Dataset can be downloaded here: 
+https://bdd-data.berkeley.edu/
+'''
+class BDD100KDataset(data.Dataset):
+
+    def __init__(self, transform): 
+        self.transform = transform
+        self.img_folder = 'Data/bdd100k_images/images/100k/train'
+
+        self.geography_info_type = "GPS_LABEL" # GPS_LABEL or STRING_FORMATTED_LABEL
+
+        self.geography_label_string_type = None # auto initialized to "COUNTRY_LABEL" or "REGION_LABEL" if geography_info_type is "STRING_FORMATTED_LABEL"
+
+        # directory storing gps information
+        self.gps_folder = 'Data/bdd100k_info/info/100k/train'
+
+        # local boundary GeoJSON file from 
+        # https://raw.githubusercontent.com/fedhere/PUI2015_EC/master/mam1612_EC/nyc-zip-code-tabulation-areas-polygons.GeoJSON
+        with open("Data/nyc_zips.json") as f:
+            self.geo_boundaries = json.load(f)
+    
+        # name of key representing region name within the GeoJSON file (these key names are different for different shapefiles so it is necessary to specify to access the region name, eg. 'Bayern)
+        self.geo_boundaries_key_name = 'postalCode' 
+
+        # subregion boundaries GeoJSON file (for global subregion analysis) from 
+        # https://drive.google.com/drive/folders/1ot9rCqeMW61z8uY-yXw30YI_DTUzeU9Z?usp=sharing
+        with open("Data/subregion_global.json") as f:
+            self.subregion_boundaries = json.load(f)
+
+        # name of key representing region name within the GeoJSON file
+        self.subregion_boundaries_key_name = 'subregion'
+
+        # csv data for choropleth analysis 
+        # https://data.cccnewyork.org/data/table/66/median-incomes#66/107/62/a/a
+        # columns: postalCode, median_income, area
+        self.choropleth_filepath = "Data/revised_zip_inc.csv"
+
+    
+        # Adds the videoname as its ID 
+        # eg. '61c0de9c-996cae66.jpg' has video name '61c0de9c-996cae66'
+
+        self.image_ids = np.load('Data/vid_names.npy')
+        print("done with ids (1/2)")
+
+        # train_label_path holds all the video names
+        train_label_path = 'Data/bdd100k_labels/labels/detection20/det_v2_train_release.json'
+        self.labels = json.load(open(train_label_path))
+        self.video_name_to_labels_idx = {self.labels[idx]['videoName'] : idx for idx in range(len(self.labels))}
+
+        self.categories = ['bicycle',
+                            'bus',
+                            'car',
+                            'motorcycle',
+                            'other person',
+                            'other vehicle',
+                            'pedestrian',
+                            'rider',
+                            'traffic light',
+                            'traffic sign',
+                            'trailer',
+                            'train',
+                            'truck']
+        self.labels_to_names = {i : i for i in self.categories}
+        print("done with categories (2/2)")
+
+    def __getitem__(self, index):
+        image_id = self.image_ids[index]
+        return self.from_path(image_id)
+    
+    def __len__(self):
+        return len(self.image_ids)
+    
+    def from_path(self, file_path):
+        image_id = os.path.join(self.img_folder, "{0}.jpg".format(file_path))
+        image = Image.open(image_id).convert("RGB")
+        image = self.transform(image)
+        country = None
+        # for each image, get category information
+        image_anns = []
+
+        category_data = self.labels[self.video_name_to_labels_idx[file_path]].get('labels', None)
+        if category_data is not None:
+            for i in range(len(category_data)):
+                label = category_data[i].get('category', None)
+                if label is not None:
+                    image_anns.append({'label': label})
+
+        ############################################
+        # additional attributes for geo analysis, including weather
+
+        attr_extra = self.labels[self.video_name_to_labels_idx[file_path]].get('attributes', None)
+        weather_attr = 'none_weather'
+        scene_attr = 'none_scene'
+        timeofday_attr = 'none_timeofday'
+
+        if attr_extra is not None:
+            weather_attr = attr_extra.get('weather', 'none_weather')
+            scene_attr = attr_extra.get('scene', 'none_scene')
+            timeofday_attr = attr_extra.get('timeofday', 'none_timeofday')
+        
+        attrs = {
+            'weather': weather_attr,
+            'scene': scene_attr,
+            'timeofday': timeofday_attr
+        }
+
+        # for each image, get long lat gps information
+        lat_lng = {}
+        try:
+            info_data = json.load(open(os.path.join(self.gps_folder, "{0}.json".format(file_path))))
+            lng, lat = (info_data['locations'])[0]['longitude'], (info_data['locations'])[0]['latitude']
+            lat_lng['lat'] = lat
+            lat_lng['lng'] = lng
+        except:
+            print("could not find lat_lng")
+
+        # note: country below is none, region will get initialized in geography_based
+        anns = [image_anns, None, [country, lat_lng, attrs], file_path, None]    
         return image, anns
