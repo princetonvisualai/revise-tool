@@ -1010,6 +1010,8 @@ class CityScapesDataset(data.Dataset):
         self.city_names = os.listdir(self.gps_folder)
         self.city_names.remove('.DS_Store')
 
+        self.group_mapping = None
+
         # Adds the title of the image as its ID 
         # (e.g. aachen/aachen_000000_000019_gtFine_color.png = aachen/aachen_000000_000019)
         self.image_ids = []
@@ -1136,7 +1138,8 @@ class BDD100KDataset(data.Dataset):
         # columns: postalCode, median_income, area
         self.choropleth_filepath = "Data/revised_zip_inc.csv"
 
-    
+        self.group_mapping = None
+        
         # Adds the videoname as its ID 
         # eg. '61c0de9c-996cae66.jpg' has video name '61c0de9c-996cae66'
 

@@ -72,6 +72,12 @@ def validate_dataset(dataset):
         print('ERROR: self.supercategories_to_names is a required field.')
         print('Please set self.categories_to_names = DEFAULT_GROUPINGS_TO_NAMES \n')
 
+    # testing if group_mappings exists
+    try: 
+        ds.group_mapping
+    except AttributeError: 
+        print('ERROR: self.categories is a required field.')
+
 
     # testing labels_to_names
     try: 
