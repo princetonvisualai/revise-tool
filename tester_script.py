@@ -76,7 +76,7 @@ def validate_dataset(dataset):
     try: 
         ds.group_mapping
     except AttributeError: 
-        print('ERROR: self.categories is a required field.')
+        print('ERROR: self.group_mapping is a required field.')
 
 
     # testing labels_to_names
