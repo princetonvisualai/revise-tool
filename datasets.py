@@ -1118,7 +1118,7 @@ class BDD100KDataset(data.Dataset):
         self.gps_folder = 'Data/bdd100k_info/info/100k/train'
 
         # local boundary GeoJSON file from 
-        # https://raw.githubusercontent.com/fedhere/PUI2015_EC/master/mam1612_EC/nyc-zip-code-tabulation-areas-polygons.GeoJSON
+        # https://drive.google.com/drive/folders/1ot9rCqeMW61z8uY-yXw30YI_DTUzeU9Z?usp=sharing
         with open("Data/nyc_zips.json") as f:
             self.geo_boundaries = json.load(f)
     
