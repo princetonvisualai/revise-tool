@@ -119,7 +119,7 @@ conda install conda=4.6.14
 ## Paper and Citation
 [REVISE: A Tool for Measuring and Mitigating Bias in Visual Datasets](https://arxiv.org/abs/2004.07999). If you find this useful, please cite one or both.
 
-[Original version](https://arxiv.org/abs/2004.07999v3), published at ECCV 2020
+[Original ECCV 2020 publication](https://arxiv.org/abs/2004.07999v3)
 
 ```
 @inproceedings{revisetool_eccv,
@@ -130,14 +130,14 @@ booktitle = {European Conference on Computer Vision (ECCV)},
 }
 ```
 
-[Extended version](https://arxiv.org/abs/2004.07999)
+[Extended IJCV 2022 publication](https://rdcu.be/cObwT)
 
 ```
 @article{revisetool_extended,
 author = {Angelina Wang and Alexander Liu and Ryan Zhang and Anat Kleiman and Leslie Kim and Dora Zhao and Iroha Shirai and Arvind Narayanan and Olga Russakovsky},
 title = {{REVISE}: A Tool for Measuring and Mitigating Bias in Visual Datasets},
-year = {2021},
-journal = {arXiv:2004.07999},
+year = {2022},
+journal = {International Journal of Computer Vision (IJCV)},
 }
 ```
 
